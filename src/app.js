@@ -53,6 +53,9 @@ app.use("/api/koreksiPenerimaan", koreksiPenerimaanController)
 //pengajuan Void
 const pengajuanVoidController = require("./pengajuanVoid/pengajuanVoid.controller")
 app.use("/api/pengajuanVoid", pengajuanVoidController)
+//monitoring Pengajuan Void
+const monitoringPengajuanVoidController = require("./monitoringPengajuanVoid/monitoringPengajuanVoid.controller")
+app.use("/api/monitoringVoid", monitoringPengajuanVoidController)
 
 //pembukaan Rekening
 const pembukaanRekeningController = require("./pembukaanRekening/pembukaanRekening.controller")

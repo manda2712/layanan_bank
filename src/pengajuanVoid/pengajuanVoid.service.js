@@ -1,9 +1,16 @@
 const prisma = require("../db")
 const { insertPengajuanVoid, findPengajuanVoid, findPengajuanVoidById, deletePengajuanVoid, editPengajuanVoid } = require("./pengajuanVoid.repository")
 
-async function creatPengajuanVoid(pengajuanVoid) {
-    const newVoid = await insertPengajuanVoid(pengajuanVoid)
-    return newVoid 
+async function creatPengajuanVoid(dataVoid, userId) {
+    try {
+        if (!userId) {
+            throw new Error("User Id Tidak Ditemukan"); 
+        }
+        const newPengajuanVoid = await insertPengajuanVoid(dataVoid, userId)
+        return newPengajuanVoid
+    } catch (error) {
+        throw new Error("Gagal Membuat Pengajuan Void");
+    }
 }
 
 async function getAllPengajuanVoid() {

@@ -1,13 +1,22 @@
 const prisma = require("../db")
 
-async function insertPengajuanVoid(dataVoid) {
+async function insertPengajuanVoid(dataVoid, userId) {
+    if (!userId) throw new Error("User ID tidak ditemukan!");
     const newPengajuanVoid = await prisma.pengajuanVoid.create({
         data:{
             kodeSatker : dataVoid.kodeSatker,
             noTelpon : dataVoid.noTelpon,
             alasanVoid : dataVoid.alasanVoid,
             unggahDokumen :dataVoid.unggahDokumen,
-        }
+            userId: userId,
+            monitoring:{
+                create:{
+                    status: "DIPROSES",
+                    userId: userId
+                }
+            }
+        },
+        include:{ monitoring: true}
     })
     return newPengajuanVoid
 }

@@ -2,12 +2,24 @@ const express = require("express")
 const router = express.Router()
 
 const pengajuanVoidService = require("./pengajuanVoid.service")
+const authorizeJWT = require("../middleware/authorizeJWT")
 
-
-router.post("/create", async (req, res) => {
+router.post("/create", authorizeJWT, async (req, res) => {
     try {
-        const pengajuanVoid = req.body
-        const dataVoid = await pengajuanVoidService.creatPengajuanVoid(pengajuanVoid)
+        console.log("User ID dari Request:", req.userId)
+
+        if (!req.userId) {
+            return res.status(401).json({message: "User Belum Terautentikasi"})  
+        }
+
+        const {kodeSatker,noTelpon,alasanVoid,unggahDokumen} = req.body
+        const dataVoid = await pengajuanVoidService.creatPengajuanVoid({
+            kodeSatker ,
+            noTelpon ,
+            alasanVoid ,
+            unggahDokumen,
+        }, req.userId);
+
         res.status(201).json({dataVoid, message: "Berhasil Membuat Pengajuan Void"})
     } catch (error) {
         res.status(400).send(error.message) 
