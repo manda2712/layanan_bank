@@ -1,13 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const penerbitanNotaService = require("./penerbitanNota.services");
+const authorizeJWT = require("../middleware/authorizeJWT");
 
-router.post("/create", async (req, res) => {
+router.post("/create", authorizeJWT, async (req, res) => {
     try {
-        const penerbitanNota = req.body;
-        const newPenerbitanNota = await penerbitanNotaService.createPenerbitanNota(penerbitanNota);
-        res.status(201).json({ newPenerbitanNota, message: "Berhasil Membuat Penerbitan Nota" });
+        console.log("User Id dari Request:", req.userId)
+
+        if (!req.userId) {
+            return res.status(401).json({message:"User Tidak Terautentikasi"})   
+        }
+
+        const{kodeSatker, noTelpon, tahunSteoran,unggahDokumen} = req.body
+
+        const dataNota = await penerbitanNotaService.createPenerbitanNota({
+            kodeSatker, 
+            noTelpon, 
+            tahunSteoran,
+            unggahDokumen
+        }, req.userId)
+        res.status(201).json({dataNota, message: "Penerbitan Nota Berhasil Dibuat"})
     } catch (error) {
+        console.error("Error di Controller:", error)
         res.status(400).send(error.message);
     }
 });

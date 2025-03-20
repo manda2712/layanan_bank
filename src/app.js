@@ -38,6 +38,9 @@ app.use("/api/monitoringPenerbitanBukti", monitoringPenerbitanBuktiController)
 //penerbitan Nota
 const penerbitanNotaController = require("./penerbitanNota/penerbitanNota.controller")
 app.use("/api/nota", penerbitanNotaController)
+//monitoring Nota
+const monitoringPenerbitanNotaController = require("./monitoringPenerbitanNota/monitoringPenerbitanNota.controller")
+app.use("/api/monitoringNota", monitoringPenerbitanNotaController)
 
 //pengajuan pnpb
 const pengembalianPnBpController = require("./pengembalianPnbp/pengembalianPnBp.controller")

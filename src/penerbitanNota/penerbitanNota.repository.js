@@ -1,13 +1,21 @@
 const prisma = require("../db")
 
-async function InsertPenerbitanNota(dataNota) {
+async function InsertPenerbitanNota(dataNota, userId) {
     const newPenerbitanNota = await prisma.penerbitanNota.create({
         data:{
             kodeSatker: dataNota.kodeSatker,
             noTelpon : dataNota.noTelpon,
             tahunSteoran :dataNota.tahunSteoran,
-            unggahDokumen : dataNota.unggahDokumen
-        }
+            unggahDokumen : dataNota.unggahDokumen,
+            userId: userId,
+            monitoring:{
+                create:{
+                    status : "DIPROSES",
+                    userId: userId
+                }
+            }
+        },
+        include:{monitoring:true}
     })
     return newPenerbitanNota  
 }

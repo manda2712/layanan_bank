@@ -1,9 +1,17 @@
 const { pengajuanNota } = require("../db")
 const {InsertPenerbitanNota, findPenerbitanNota, findPenerbitanNotaById, editPenerbitanNota, deletePenerbitanNota} = require("./penerbitanNota.repository")
 
-async function createPenerbitanNota(newPenerbitanNota) {
-    const newNota = await InsertPenerbitanNota(newPenerbitanNota)
-    return newNota  
+async function createPenerbitanNota(dataBukti, userId) {
+    try {
+        if (!userId) {
+            throw new Error("User Id Tidak Ditemukan");
+        } 
+        
+        const newPenerbitanNota = await InsertPenerbitanNota(dataBukti, userId)
+        return newPenerbitanNota
+    } catch (error) {
+        throw new Error("Gagal Membuat Penerbitan Nota"); 
+    }
 }
 
 async function getAllPenerbitanNota() {
