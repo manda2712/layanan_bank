@@ -1,0 +1,259 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id                          Int                           @id @default(autoincrement())
+  namaLengkap                 String
+  email                       String                        @unique
+  noTelepon                   String
+  password                    String
+  role                        Role
+  monitoringPenerbitanNota    monitoringPenerbitanNota[]
+  monitoringPengembalianPnbp  monitoringPengembalianPnbp[]
+  monitoringKoreksiPenerimaan monitoringKoreksiPenerimaan[]
+  monitoringPengajuanVoid     monitoringPengajuanVoid[]
+  monitoringPembukaanRekening monitoringPembukaanRekening[]
+  monitoringLaporanRekening   monitoringLaporanRekening[]
+  monitoringPengembalianPfk   monitoringPengembalianPfk[]
+  monitoringReturSp2d         monitoringReturSp2d[]
+  monitoringPenerbitanBukti   monitoringPenerbitanBukti[]
+  pembukaanRekening           pembukaanRekening[]
+  returSp2d                   returSp2d[]
+  penerbitanBukti             penerbitanBukti[]
+  penerbitanNota              penerbitanNota[]
+  pengembalianPnbp            pengembalianPnbp[]
+  koreksiPenerimaan           koreksiPenerimaan[]
+  pengajuanVoid               pengajuanVoid[]
+  laporanRekening             laporanRekening[]
+  pengembalianPfk             pengembalianPfk[]
+}
+
+enum Role {
+  admin
+  user
+}
+
+model returSp2d {
+  id             Int                   @id @default(autoincrement())
+  kodeSatker     String
+  userId         Int
+  noTelpon       String
+  alasanRetur    Retur
+  unggah_dokumen String
+  monitoring     monitoringReturSp2d[]
+  user           user                  @relation(fields: [userId], references: [id])
+}
+
+enum Retur {
+  REKENING_TIDAK_AKTIF
+  REKENING_PASIF
+  NOMOR_REKENING_SALAH
+}
+
+model monitoringReturSp2d {
+  id          Int              @id @default(autoincrement())
+  returSp2dId Int
+  userId      Int
+  status      StatusMonitoring
+  returSp2d   returSp2d        @relation(fields: [returSp2dId], references: [id])
+  user        user             @relation(fields: [userId], references: [id])
+}
+
+model penerbitanBukti {
+  id             Int                         @id @default(autoincrement())
+  kodeSatker     String
+  noTelpon       String
+  alasanRetur    Pengajuan
+  unggah_dokumen String
+  monitoring     monitoringPenerbitanBukti[]
+  user           user                        @relation(fields: [userId], references: [id])
+  userId         Int
+}
+
+enum Pengajuan {
+  REKENING_TIDAK_AKTIF
+  REKENING_PASIF
+  NOMOR_REKENING_SALAH
+}
+
+model monitoringPenerbitanBukti {
+  id                Int              @id @default(autoincrement())
+  penerbitanBuktiId Int
+  userId            Int
+  status            StatusMonitoring
+  penerbitanBukti   penerbitanBukti  @relation(fields: [penerbitanBuktiId], references: [id])
+  user              user             @relation(fields: [userId], references: [id])
+}
+
+model penerbitanNota {
+  id            Int                        @id @default(autoincrement())
+  kodeSatker    String
+  noTelpon      String
+  tahunSteoran  Tahun
+  unggahDokumen String
+  monitoring    monitoringPenerbitanNota[]
+  user          user                       @relation(fields: [userId], references: [id])
+  userId        Int
+}
+
+enum Tahun {
+  T2025
+  T2024
+}
+
+model monitoringPenerbitanNota {
+  id               Int              @id @default(autoincrement())
+  penerbitanNotaId Int
+  status           StatusMonitoring
+  penerbitanNota   penerbitanNota   @relation(fields: [penerbitanNotaId], references: [id])
+  user             user             @relation(fields: [userId], references: [id])
+  userId           Int
+}
+
+model pengembalianPnbp {
+  id              Int                          @id @default(autoincrement())
+  pihakMengajukan PihakPengajuan
+  kodeSatker      String
+  noTelpon        String
+  unggahDokumen   String
+  monitoring      monitoringPengembalianPnbp[]
+  user            user                         @relation(fields: [userId], references: [id])
+  userId          Int
+}
+
+model monitoringPengembalianPnbp {
+  id                 Int              @id @default(autoincrement())
+  pengembalianPnbpId Int
+  status             StatusMonitoring
+  pengembalianPnbp   pengembalianPnbp @relation(fields: [pengembalianPnbpId], references: [id])
+  user               user             @relation(fields: [userId], references: [id])
+  userId             Int
+}
+
+model koreksiPenerimaan {
+  id            Int                           @id @default(autoincrement())
+  kodeSatker    String
+  noTelpon      String
+  tahunSteoran  Tahun
+  unggahDokumem String
+  monitoring    monitoringKoreksiPenerimaan[]
+  user          user                          @relation(fields: [userId], references: [id])
+  userId        Int
+}
+
+model monitoringKoreksiPenerimaan {
+  id                  Int               @id @default(autoincrement())
+  koreksiPenerimaanId Int
+  status              StatusMonitoring
+  koreksiPenerimaan   koreksiPenerimaan @relation(fields: [koreksiPenerimaanId], references: [id])
+  user                user              @relation(fields: [userId], references: [id])
+  userId              Int
+}
+
+model pengajuanVoid {
+  id            Int                       @id @default(autoincrement())
+  kodeSatker    String
+  noTelpon      String
+  alasanVoid    String
+  unggahDokumen String
+  monitoring    monitoringPengajuanVoid[]
+  user          user                      @relation(fields: [userId], references: [id])
+  userId        Int
+}
+
+model monitoringPengajuanVoid {
+  id              Int              @id @default(autoincrement())
+  pengajuanVoidId Int
+  status          StatusMonitoring
+  pengajuanVoid   pengajuanVoid    @relation(fields: [pengajuanVoidId], references: [id])
+  user            user             @relation(fields: [userId], references: [id])
+  userId          Int
+}
+
+model pembukaanRekening {
+  id            Int                           @id @default(autoincrement())
+  kodeSatker    String
+  noTelpon      String
+  jenisRekening String
+  unggahDokumen String
+  monitoring    monitoringPembukaanRekening[]
+  user          user                          @relation(fields: [userId], references: [id])
+  userId        Int
+}
+
+model monitoringPembukaanRekening {
+  id                  Int               @id @default(autoincrement())
+  pembukaanRekeningId Int
+  status              StatusMonitoring
+  pembukaanRekening   pembukaanRekening @relation(fields: [pembukaanRekeningId], references: [id])
+  user                user              @relation(fields: [userId], references: [id])
+  userId              Int
+}
+
+model laporanRekening {
+  id            Int                         @id @default(autoincrement())
+  kodeSatker    String
+  noTelpon      String
+  jenisLaporan  Laporan
+  unggahDokumen String
+  monitoring    monitoringLaporanRekening[]
+  user          user                        @relation(fields: [userId], references: [id])
+  userId        Int
+}
+
+enum Laporan {
+  LAPORAN_PEMBUKAAN_REKENING
+  LAPORAN_PENTUPUAN_REKENING
+}
+
+model monitoringLaporanRekening {
+  id                Int              @id @default(autoincrement())
+  laporanRekeningId Int
+  status            StatusMonitoring
+  laporanRekening   laporanRekening  @relation(fields: [laporanRekeningId], references: [id])
+  user              user             @relation(fields: [userId], references: [id])
+  userId            Int
+}
+
+model pengembalianPfk {
+  id              Int                         @id @default(autoincrement())
+  pihakMengajukan PihakPengajuan
+  kodeSatker      String
+  noTelpon        String
+  unggahDokumen   String
+  monitoring      monitoringPengembalianPfk[]
+  user            user                        @relation(fields: [userId], references: [id])
+  userId          Int
+}
+
+enum PihakPengajuan {
+  satuan_kerja
+  pemerintah_daerah
+}
+
+model monitoringPengembalianPfk {
+  id                Int              @id @default(autoincrement())
+  pengembalianPfkId Int
+  status            StatusMonitoring
+  pengembalianPfk   pengembalianPfk  @relation(fields: [pengembalianPfkId], references: [id])
+  userId            Int
+  user              user             @relation(fields: [userId], references: [id])
+}
+
+enum StatusMonitoring {
+  DIPROSES
+  SELESAI
+  DITOLAK
+}
