@@ -1,13 +1,21 @@
 const prisma = require("../db")
 
-async function insertPengembalianPnbp(dataPnbp) {
+async function insertPengembalianPnbp(dataPnbp, userId) {
     const newPengembalianPnbp = await prisma.pengembalianPnbp.create({
         data:{
             pihakMengajukan : dataPnbp.pihakMengajukan,
             kodeSatker      : dataPnbp.kodeSatker,
             noTelpon        : dataPnbp.noTelpon,
-            unggahDokumen   : dataPnbp.unggahDokumen
-        }
+            unggahDokumen   : dataPnbp.unggahDokumen,
+            userId : userId,
+            monitoring:{
+                create:{
+                    status: "DIPROSES",
+                    userId: userId
+                }
+            }
+        },
+        include: {monitoring: true}
     }) 
     return newPengembalianPnbp   
 }

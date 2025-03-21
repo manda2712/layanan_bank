@@ -45,6 +45,9 @@ app.use("/api/monitoringNota", monitoringPenerbitanNotaController)
 //pengajuan pnpb
 const pengembalianPnBpController = require("./pengembalianPnbp/pengembalianPnBp.controller")
 app.use("/api/pengembalianPnbp", pengembalianPnBpController)
+//monitoring Pnbp
+const monitoringPengembalianPnbpController = require("./monitoringPengembalianPnbp/monitoringPengembalianPnbp.controller")
+app.use("/api/monitoringPnbp", monitoringPengembalianPnbpController)
 
 //penerimaan Koreksi
 const koreksiPenerimaanController = require("./koreksiPenerimaan/koreksiPenerimaan.controller")

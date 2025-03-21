@@ -2,15 +2,27 @@ const express = require("express")
 const router = express.Router()
 
 const pengembalianPnbpService = require("./pengembalianPnBp.service")
+const authorizeJWT = require("../middleware/authorizeJWT");
 
-
-router.post("/create", async (req, res) => {
+router.post("/create", authorizeJWT, async (req, res) => {
     try {
-        const pengembalianPnBp = req.body
-        const dataPnbp = await pengembalianPnbpService.createPengembalianPnbp(pengembalianPnBp)
+        console.log("User Id dari Request:", req.userId)
+        
+        if (!req.userId) {
+            return res.status(401).json({message: "User Belum Terautentikasi"})
+        }
+
+        const{pihakMengajukan ,kodeSatker ,noTelpon, unggahDokumen } = req.body
+
+        const dataPnbp = await pengembalianPnbpService.createPengembalianPnbp({
+            pihakMengajukan,
+            kodeSatker,
+            noTelpon, 
+            unggahDokumen
+        }, req.userId)
         res.status(201).json({dataPnbp, message:"Berhasil dalam Mmembuat Pengembalian PNBP"})
     } catch (error) {
-        res.status(400).send(error.message)   
+        res.status(400).json({error:error.message})  
     }
 })
 
