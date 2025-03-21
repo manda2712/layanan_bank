@@ -1,0 +1,85 @@
+const prisma = require("../db")
+const { editKoreksiPenerimaan } = require("../koreksiPenerimaan/koreksiPenerimaan.repository")
+
+async function findMonitoringPengembalianPfk() {
+    const monitoring = await prisma.monitoringPengembalianPfk.findMany({
+        select:{
+            id: true,
+            status: true,
+            pengembalianPfkId: true,
+            pengembalianPfk:{
+                select:{
+                    pihakMengajukan :true,
+                    kodeSatker      :true,
+                    noTelpon        :true,
+                    unggahDokumen   :true,
+                    user:{
+                        select:{
+                            namaLengkap: true
+                        }
+                    }
+                }
+            }
+        }
+    })
+    return monitoring
+}
+
+async function findMonitoringPengembalianPfkById(id) {
+    const monitoring = await prisma.monitoringPengembalianPfk.findUnique({
+        where: {id: parseInt(id)},
+        select:{
+            id : true,
+            pengembalianPfkId:true,
+            status: true,
+            pengembalianPfk:{
+                select:{
+                    pihakMengajukan :true,
+                    kodeSatker      :true,
+                    noTelpon        :true,
+                    unggahDokumen   :true,
+                    user:{
+                        select:{
+                            namaLengkap:true
+                        }
+                    }
+                }
+            }  
+        }
+    })
+    return monitoring 
+}
+
+async function updateMonitoringPengembalianPfk(id, dataMonitoring) {
+    const updatedMonitoring = await prisma.monitoringPengembalianPfk.update({
+        where: {id: parseInt(id)},
+        data:{
+            status: dataMonitoring.status
+        },
+        include:{
+            pengembalianPfk:{
+                include:{
+                    user:{
+                        select:{
+                            namaLengkap: true
+                        }
+                    }
+                }
+            }
+        }
+    })
+    return updatedMonitoring
+}
+
+async function deleteMonitoringPengembalianPfk(id) {
+    await prisma.monitoringPengembalianPfk.delete({
+        where:{id: parseInt(id)}
+    }) 
+}
+
+module.exports = {
+    findMonitoringPengembalianPfk,
+    findMonitoringPengembalianPfkById,
+    updateMonitoringPengembalianPfk,
+    deleteMonitoringPengembalianPfk
+}

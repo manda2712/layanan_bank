@@ -71,4 +71,7 @@ app.use("/api/laporanRekening/", laporanRekeningController)
 //pengembalian PFK
 const pengembalianPfkController = require("./pengembalianPfk/pengembalianPfk.controller")
 app.use("/api/pengembalianPfk", pengembalianPfkController)
+//monitoring PFK
+const monitoringPengembalianPfkController = require("./monitoringPengembalianPfk/monitoringPengembalianPfk.controller")
+app.use("/api/monitoringPfk", monitoringPengembalianPfkController)
 

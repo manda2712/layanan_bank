@@ -1,13 +1,21 @@
 const prisma = require("../db")
 
-async function insertPengembalianPfk(dataPfk) {
+async function insertPengembalianPfk(dataPfk, userId) {
     const newPengembalianPfk = await prisma.pengembalianPfk.create({
         data:{
             pihakMengajukan :dataPfk.pihakMengajukan,
             kodeSatker      :dataPfk.kodeSatker,
             noTelpon        :dataPfk.noTelpon,
-            unggahDokumen   :dataPfk.unggahDokumen
-        }
+            unggahDokumen   :dataPfk.unggahDokumen,
+            userId          :userId,
+            monitoring:{
+                create:{
+                    status: "DIPROSES",
+                    userId: userId
+                }
+            }
+        },
+        include : {monitoring: true}
     })
     return newPengembalianPfk
 }

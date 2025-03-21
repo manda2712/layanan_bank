@@ -7,7 +7,7 @@ async function getAllMonitoringPengajuanVoid() {
 async function getMonitoringPengajuanVoidById(id) {
     const monitoring = await findMonitoringPengujuanVoidById(id)
     if (!monitoring) {
-        throw new Error("Monitoring Pengajuan Void Tidak Ditembukan"); 
+        throw new Error("Monitoring Pengajuan Void Tidak Ditemukan"); 
     }
     return monitoring
 }

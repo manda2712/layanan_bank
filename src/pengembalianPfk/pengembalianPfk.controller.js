@@ -2,15 +2,27 @@ const express = require("express")
 const router = express.Router()
 
 const pengembalianPfkService = require("./pengembalianPfk.service")
-const { pengembalianPfk } = require("../db")
+const authorizeJWT = require("../middleware/authorizeJWT")
 
-router.post("/create", async (req, res) => {
+router.post("/create", authorizeJWT, async (req, res) => {
     try {
-        const pengembalianPfk = req.body
-        const dataPfk = await pengembalianPfkService.createPengembalianPfk(pengembalianPfk)
-        res.status(201).json({dataPfk, message: "Pengembalian PFK Berhasil diunggah"})
+        console.log("User ID dari Request:", req.userId)
+
+        if (!req.userId) {
+            return res.status(401).json({message:"user tidak terautentikasi"})  
+        }
+        const {pihakMengajukan, kodeSatker, noTelpon,unggahDokumen} = req.body
+
+        const dataPfk = await pengembalianPfkService.createPengembalianPfk({
+            pihakMengajukan, 
+            kodeSatker, 
+            noTelpon,
+            unggahDokumen
+        }, req.userId)
+
+        res.status(201).json({dataPfk, message: "Pengembalian PFK Berhasil Dibuat"})
     } catch (error) {
-        res.status(400).send(error.message)   
+        res.status(400).json({ error: error.message });  
     } 
 })
 

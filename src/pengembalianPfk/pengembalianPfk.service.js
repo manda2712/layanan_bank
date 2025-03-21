@@ -1,8 +1,16 @@
 const { insertPengembalianPfk, findPengembalianPfk, findPengembalianPfkById, editPengembalianPfk } = require("./pengembalianPfk.repository");
 
-async function createPengembalianPfk(pengembalianPfk) {
-    const newPfk = await insertPengembalianPfk(pengembalianPfk)
-    return newPfk  
+async function createPengembalianPfk(dataPfk, userId) {
+    try {
+        if (!userId) {
+           throw new Error("User Id Tidak Ditemukan");
+        }
+
+        const newPengembalianPfk = await insertPengembalianPfk(dataPfk, userId)
+        return newPengembalianPfk
+    } catch (error) {
+        throw new Error("Gagal Membuat Pengembalian PFK");  
+    }  
 }
 
 async function getAllPengembalianPfk() {
