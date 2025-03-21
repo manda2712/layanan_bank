@@ -1,11 +1,30 @@
 const express = require("express");
 const router = express.Router();
-
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const PenerbitanBukstiService = require("./penerbitanBukti.services")
 const authorizeJWT = require("../middleware/authorizeJWT");
-const { penerbitanBukti } = require("../db");
 
-router.post('/create', authorizeJWT, async (req, res) => {
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, "uploads/"); // Simpan file di folder uploads/
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname); // Ambil ekstensi asli
+    const uniqueSuffix = Date.now(); // Gunakan timestamp agar unik
+    cb(null, `file_${uniqueSuffix}${ext}`); // Format nama file
+    }
+});
+
+const upload = multer({ storage });
+
+router.post('/create', authorizeJWT, upload.single("unggah_dokumen"), async (req, res) => {
     try {
         console.log("User Id dari Request:", req.userId)
 
@@ -16,8 +35,18 @@ router.post('/create', authorizeJWT, async (req, res) => {
         const{kodeSatker ,
             noTelpon ,
             alasanRetur ,
-            unggah_dokumen
+            
         } = req.body
+
+        const unggah_dokumen = req.file ? req.file.path : null; // Ambil path file
+
+        if (!kodeSatker || !noTelpon || !alasanRetur) {
+            return res.status(400).json({ message: "Semua field wajib diisi!" });
+        }
+
+        if (!unggah_dokumen) {
+            return res.status(400).json({ message: "Dokumen wajib diunggah!" });
+        }
 
         const dataBukti = await PenerbitanBukstiService.createPenerbitanBukti({
             kodeSatker ,

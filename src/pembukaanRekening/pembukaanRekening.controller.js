@@ -1,12 +1,32 @@
 const express = require("express")
 const router = express.Router()
-
+const multer = require("multer");
+const path = require("path");
 const pembukaanRekeningService = require("./pembukaanRekening.service");
 const authorizeJWT = require("../middleware/authorizeJWT")
+const fs = require("fs");
 
 
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
 
-router.post("/create", authorizeJWT,async (req, res) => {
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, "uploads/"); // Simpan file di folder uploads/
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname); // Ambil ekstensi asli
+    const uniqueSuffix = Date.now(); // Gunakan timestamp agar unik
+    cb(null, `file_${uniqueSuffix}${ext}`); // Format nama file
+    }
+});
+
+const upload = multer({ storage });
+
+// Route untuk pembukaan rekening
+router.post("/create", authorizeJWT, upload.single("unggahDokumen"), async (req, res) => {
     try {
         console.log("User ID dari request:", req.userId); // Debugging
 
@@ -14,7 +34,16 @@ router.post("/create", authorizeJWT,async (req, res) => {
             return res.status(401).json({ message: "User tidak terautentikasi!" });
         }
 
-        const { kodeSatker, noTelpon, jenisRekening, unggahDokumen } = req.body;
+        const { kodeSatker, noTelpon, jenisRekening } = req.body;
+        const unggahDokumen = req.file ? req.file.path : null; // Ambil path file
+
+        if (!kodeSatker || !noTelpon || !jenisRekening) {
+            return res.status(400).json({ message: "Semua field wajib diisi!" });
+        }
+
+        if (!unggahDokumen) {
+            return res.status(400).json({ message: "Dokumen wajib diunggah!" });
+        }
 
         const dataRekening = await pembukaanRekeningService.createPembukaanRekening({
             kodeSatker,
@@ -29,7 +58,6 @@ router.post("/create", authorizeJWT,async (req, res) => {
         res.status(400).json({ error: error.message });
     }
 });
-
 
 router.get("/", async (req, res) => {
     try {

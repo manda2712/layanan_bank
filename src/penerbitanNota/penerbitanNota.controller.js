@@ -2,8 +2,28 @@ const express = require("express");
 const router = express.Router();
 const penerbitanNotaService = require("./penerbitanNota.services");
 const authorizeJWT = require("../middleware/authorizeJWT");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
-router.post("/create", authorizeJWT, async (req, res) => {
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, "uploads/"); // Simpan file di folder uploads/
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname); // Ambil ekstensi asli
+    const uniqueSuffix = Date.now(); // Gunakan timestamp agar unik
+    cb(null, `file_${uniqueSuffix}${ext}`); // Format nama file
+    }
+});
+const upload = multer({ storage });
+
+router.post("/create", authorizeJWT, upload.single("unggahDokumen"), async (req, res) => {
     try {
         console.log("User Id dari Request:", req.userId)
 
@@ -11,7 +31,16 @@ router.post("/create", authorizeJWT, async (req, res) => {
             return res.status(401).json({message:"User Tidak Terautentikasi"})   
         }
 
-        const{kodeSatker, noTelpon, tahunSteoran,unggahDokumen} = req.body
+        const{kodeSatker, noTelpon, tahunSteoran} = req.body
+        const unggahDokumen = req.file ? req.file.path : null; // Ambil path file
+
+        if (!kodeSatker || !noTelpon || !tahunSteoran) {
+            return res.status(400).json({ message: "Semua field wajib diisi!" });
+        }
+
+        if (!unggahDokumen) {
+            return res.status(400).json({ message: "Dokumen wajib diunggah!" });
+        }
 
         const dataNota = await penerbitanNotaService.createPenerbitanNota({
             kodeSatker, 
