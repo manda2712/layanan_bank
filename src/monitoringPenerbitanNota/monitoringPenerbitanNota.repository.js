@@ -71,9 +71,19 @@ async function updatedMonitoringPenerbitanNota(id, dataMonitoring) {
 }
 
 async function deleteMonitoringPenerbitanNota(id) {
-    await prisma.monitoringPenerbitanNota.delete({
-        where:{id: parseInt(id)}
-    })
+    return await prisma.$transaction(async (prisma) => {
+        // Hapus monitoring dulu
+        const deletedMonitoring = await prisma.monitoringPenerbitanNota.delete({
+            where: { id: parseInt(id) }
+        });
+
+        // Hapus returSp2d yang terkait
+        await prisma.penerbitanNota.delete({
+            where: { id: deletedMonitoring.penerbitanNotaId }
+        });
+
+        return deletedMonitoring;
+    });
 }
 
 module.exports = {

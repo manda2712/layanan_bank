@@ -71,9 +71,19 @@ async function updateMonitoringPengajuanVoid(id, dataMonitoring) {
 }
 
 async function deleteMonitoringPengajuanVoid(id) {
-    await prisma.monitoringPengajuanVoid.delete({
-        where:{id : parseInt(id)}
-    })   
+    return await prisma.$transaction(async (prisma) => {
+        // Hapus monitoring dulu
+        const deletedMonitoring = await prisma.monitoringPengajuanVoid.delete({
+            where: { id: parseInt(id) }
+        });
+
+        // Hapus returSp2d yang terkait
+        await prisma.pengajuanVoid.delete({
+            where: { id: deletedMonitoring.pengajuanVoidId }
+        });
+
+        return deletedMonitoring;
+    }); 
 }
 
 module.exports = {

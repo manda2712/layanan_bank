@@ -71,9 +71,19 @@ async function updatedMonitoringReturSp2d(id, dataMonitoring) {
 }
 
 async function deleteMonitoringReturSp2d(id) {
-    await prisma.monitoringReturSp2d.delete({
-        where:{id: parseInt(id)}
-    })
+    return await prisma.$transaction(async (prisma) => {
+        // Hapus monitoring dulu
+        const deletedMonitoring = await prisma.monitoringReturSp2d.delete({
+            where: { id: parseInt(id) }
+        });
+
+        // Hapus returSp2d yang terkait
+        await prisma.returSp2d.delete({
+            where: { id: deletedMonitoring.returSp2dId }
+        });
+
+        return deletedMonitoring;
+    });
     
 }
 
