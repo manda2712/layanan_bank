@@ -1,13 +1,52 @@
 const express = require("express")
 const router = express.Router()
-
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const authorizeJWT = require("../middleware/authorizeJWT")
 const laporanRekeningService = require("./laporanRekening.service")
 
-router.post('/create', async (req, res) => {
+const uploadDir = "uploads";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, "uploads/"); // Simpan file di folder uploads/
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname); // Ambil ekstensi asli
+    const uniqueSuffix = Date.now(); // Gunakan timestamp agar unik
+    cb(null, `file_${uniqueSuffix}${ext}`); // Format nama file
+    }
+});
+
+const upload = multer({ storage });
+
+router.post('/create', authorizeJWT, upload.single("unggahDokumen"), async (req, res) => {
     try {
-        const laporanRekening = req.body
-        const dataRekening = await laporanRekeningService.createLaporanRekening(laporanRekening)
-        res.status(201).json({dataRekening, message:"Berhasil Membuat Laporan Rekening"})
+        console.log("User Id dari Request:", req.userId)
+        if (!req.userId) {
+            return res.status(401).json({message: "User Tidak Terutentikasi"})  
+        }
+
+        const{kodeSatker, noTelpon, jenisLaporan} = req.body
+        const unggahDokumen = req.file ? req.file.path : null; // Ambil path file
+        if (!kodeSatker || !noTelpon || !jenisLaporan) {
+            return res.status(400).json({ message: "Semua field wajib diisi!" });
+        }
+
+        if (!unggahDokumen) {
+            return res.status(400).json({ message: "Dokumen wajib diunggah!" });
+        }
+        const dataLaporan = await laporanRekeningService.createLaporanRekening({
+            kodeSatker, 
+            noTelpon, 
+            jenisLaporan, 
+            unggahDokumen
+        }, req.userId)
+        res.status(201).json({dataLaporan, message:"Berhasil Membuat Laporan Rekening"})
     } catch (error) {
         res.status(400).send(error.message) 
     }

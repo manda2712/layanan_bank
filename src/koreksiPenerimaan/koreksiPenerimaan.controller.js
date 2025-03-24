@@ -1,13 +1,25 @@
 const express = require("express");
 const router = express.Router()
-
+const authorizeJWT = require("../middleware/authorizeJWT")
 const koreksiPenerimaanService = require("./koreksiPenerimaan.service");
 const { pengajuanNota } = require("../db");
 
-router.post('/create', async (req, res) => {
+router.post('/create', authorizeJWT, async (req, res) => {
     try {
-        const koreksiPenerimaan = req.body
-        const dataKoreksi = await koreksiPenerimaanService.createKoreksiPenerimaan(koreksiPenerimaan)
+       console.log("User ID dari request:", req.userId)
+
+       if (!req.userId) {
+        return res.status(401).json({message:"User Tidak Terautentikasi"})
+       }
+
+       const {kodeSatker, noTelpon, tahunSteoran, unggahDokumem} = req.body
+
+       const dataKoreksi = await koreksiPenerimaanService.createKoreksiPenerimaan({
+            kodeSatker, 
+            noTelpon, 
+            tahunSteoran, 
+            unggahDokumem
+       }, req.userId)
         res.status(201).json({dataKoreksi, message: "Koreksi Penerimaan Berhasil Dibuat"})
     } catch (error) {
         res.status(400).send(error.message)  

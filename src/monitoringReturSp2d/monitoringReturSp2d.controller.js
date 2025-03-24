@@ -23,7 +23,7 @@ router.get("/:id", async (req, res) => {
     }
 })
 
-router.patch("/:id", adminAuthorize, async (req, res) => {
+router.patch("/:id",  async (req, res) => {
     try {
         const monitoringId = req.params.id
         const monitoringData = req.body

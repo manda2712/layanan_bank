@@ -1,8 +1,17 @@
 const { insertLaporanRekening, findLaporanRekening, findLaporanRekeningById, editLaporanRekening, deleteLaporanRekening } = require("./laporanRekening.repository");
 
-async function createLaporanRekening(laporanRekening) {
-    const newLaporan = await insertLaporanRekening(laporanRekening)
-    return newLaporan  
+async function createLaporanRekening(dataLaporan, userId) {
+    try {
+        if (!userId) {
+           throw new Error("User Id Tidak Ditemukan");
+        }
+
+        const newLaporanRekening = await insertLaporanRekening(dataLaporan, userId)
+        return newLaporanRekening
+    } catch (error) {
+        console.error("Error saat membuat laporan rekening:", error)
+        throw new Error("Gagal Membuat Laporan Rekening");  
+    }  
 }
 
 async function getAllLaporanRekening() {

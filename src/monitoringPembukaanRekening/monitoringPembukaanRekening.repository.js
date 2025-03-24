@@ -45,14 +45,14 @@ async function findMonitoringPembukaanRekeningById(id) {
                     }
                 }
             }
-        }
+        } 
     });
     return monitoring;
 }
 
 async function updateMonitoringPembukaanRekening(id, dataMonitoring) {
     const updatedMonitoring = await prisma.monitoringPembukaanRekening.update({
-        where: { id: parseInt(id) },
+       where: { id: parseInt(id) },
         data: {
             status: dataMonitoring.status,
         },

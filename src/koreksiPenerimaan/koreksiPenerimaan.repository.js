@@ -1,13 +1,22 @@
 const prisma = require("../db")
 
-async function InsertKoreksiPenerimaan(dataKoreksi) {
+async function InsertKoreksiPenerimaan(dataKoreksi, userId) {
+    if (!userId) throw new Error("User Id Tidak Ditemukan");
     const newKoreksiPenerimaan = await prisma.koreksiPenerimaan.create({
         data:{
             kodeSatker : dataKoreksi.kodeSatker,
             noTelpon : dataKoreksi.noTelpon,
             tahunSteoran : dataKoreksi.tahunSteoran,
             unggahDokumem : dataKoreksi.unggahDokumem,
-        }
+            userId: userId,
+            monitoring:{
+                create:{
+                    status: "DIPROSES",
+                    userId:userId
+                }
+            }
+        },
+        include: {monitoring:true}
     })
     return newKoreksiPenerimaan  
 }

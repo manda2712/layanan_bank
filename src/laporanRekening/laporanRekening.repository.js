@@ -1,13 +1,23 @@
 const prisma = require("../db")
 
-async function insertLaporanRekening(dataRekening) {
+async function insertLaporanRekening(dataLaporan, userId) {
+    if (!userId) throw new Error("User Id Tidak Ditemukan");
+    
     const newLaporanRekening = await prisma.laporanRekening.create({
         data:{
-            kodeSatker    : dataRekening.kodeSatker,
-            noTelpon      : dataRekening.noTelpon,
-            jenisLaporan  : dataRekening.jenisLaporan,
-            unggahDokumen : dataRekening.unggahDokumen
-        }
+            kodeSatker    : dataLaporan.kodeSatker,
+            noTelpon      : dataLaporan.noTelpon,
+            jenisLaporan  : dataLaporan.jenisLaporan,
+            unggahDokumen : dataLaporan.unggahDokumen,
+            userId : userId,
+            monitoring:{
+                create:{
+                    status : "DIPROSES",
+                    userId: userId
+                }
+            }
+        },
+        include: {monitoring: true}
     })
     return newLaporanRekening  
 }

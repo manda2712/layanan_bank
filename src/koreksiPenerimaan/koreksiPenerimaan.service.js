@@ -1,8 +1,15 @@
 const {InsertKoreksiPenerimaan, findKoreksiPenerimaan, findKoreksiPenerimaanById, editKoreksiPenerimaan, deleteKoreksiPenerimaan} = require("./koreksiPenerimaan.repository")
 
-async function createKoreksiPenerimaan(koreksiPenerimaan) {
-    const newPenerimaan = await InsertKoreksiPenerimaan(koreksiPenerimaan)
-    return newPenerimaan 
+async function createKoreksiPenerimaan(koreksiPenerimaan, userId) {
+    try {
+        if (!userId) {
+            throw new Error("User ID Tidak Ditemukan");
+        }
+        const newKoreksiPenerimaan = await InsertKoreksiPenerimaan(koreksiPenerimaan, userId)
+        return newKoreksiPenerimaan
+    } catch (error) {
+        throw new Error("Gagal Membuat Koreksi Penerimaan ");  
+    } 
 }
 
 async function getAllKoreksiPenerimaan() {
