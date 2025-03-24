@@ -1,6 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const monitoringPenerbitanBuktiService = require("./monitoringPenerbitanBukti.service")
+const adminAuthorize = require("../middleware/adminAuthorizeJWT")
 
 router.get("/", async (req, res) => {
     try {
@@ -21,7 +22,7 @@ router.get("/:id", async (req, res) => {
     } 
 })
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", adminAuthorize, async (req, res) => {
     try {
         const monitoringId = req.params.id
         const monitoringData = req.body
@@ -32,7 +33,7 @@ router.patch("/:id", async (req, res) => {
     }
 })
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminAuthorize, async (req, res) => {
     try {
         const monitoringId = req.params.id
         await monitoringPenerbitanBuktiService.deleteMonitoringPenerbitanBuktiById(monitoringId)

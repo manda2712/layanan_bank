@@ -1,6 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const monitoringPengembalianPnbpServicer= require ("./monitoringPengembalianPnbp.service")
+const adminAuthorize = require("../middleware/adminAuthorizeJWT")
 
 router.get("/", async (req, res) => {
     try {
@@ -21,7 +22,7 @@ router.get("/:id", async (req, res) => {
     }
 })
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", adminAuthorize, async (req, res) => {
     try {
         const monitoringId = req.params.id
         const monitoringData = req.body

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const monitoringPembukaanRekeningService = require("./monitroingPembukaanRekening.service");
+const adminAuthorize = require("../middleware/adminAuthorizeJWT")
 
 
 // Ambil semua monitoring
@@ -25,7 +26,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Edit monitoring berdasarkan ID
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", adminAuthorize, async (req, res) => {
     try {
         const monitoringId = req.params.id;
         const monitoringData = req.body;
@@ -37,7 +38,7 @@ router.patch("/:id", async (req, res) => {
 });
 
 // Hapus monitoring berdasarkan ID
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",adminAuthorize, async (req, res) => {
     try {
         const monitoringId = req.params.id;
         await monitoringPembukaanRekeningService.deleteMonitoringPembukaanRekeningById(monitoringId);
