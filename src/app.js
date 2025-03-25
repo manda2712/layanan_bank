@@ -52,6 +52,9 @@ app.use("/api/monitoringPnbp", monitoringPengembalianPnbpController)
 //penerimaan Koreksi
 const koreksiPenerimaanController = require("./koreksiPenerimaan/koreksiPenerimaan.controller")
 app.use("/api/koreksiPenerimaan", koreksiPenerimaanController)
+//monitoring Penerimaan Koreksi
+const monitoringPenerimaanKoreksiController =require("./monitoringKoreksiPenerimaan/monitoringKoreksiPenerimaan.controller")
+app.use("/api/monitoringKoreksi", monitoringPenerimaanKoreksiController)
 
 //pengajuan Void
 const pengajuanVoidController = require("./pengajuanVoid/pengajuanVoid.controller")
