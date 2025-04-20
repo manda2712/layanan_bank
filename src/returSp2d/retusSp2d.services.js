@@ -7,6 +7,11 @@ async function createRetur(dataRetur, userId) {
         if (!userId) {
            throw new Error("UserId Tidak Ditemukan");   
         }
+        // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
+        if (dataRetur.alasanRetur === "LAINNYA" && !dataRetur.alasanLainnya) {
+            throw new Error("Alasan lainnya wajib diisi jika memilih LAINNYA.");
+        }
+
         const newRetur = await insertRetur(dataRetur, userId)
         return newRetur
     } catch (error) {
@@ -31,6 +36,12 @@ async function getAllReturById(id) {
 
 async function editReturById(id, dataRetur) {
     await getAllReturById(id)
+
+    // ✅ Validasi juga di bagian edit
+    if (dataRetur.alasanRetur === "LAINNYA" && !dataRetur.alasanLainnya) {
+        throw new Error("Alasan lainnya wajib diisi jika memilih LAINNYA.");
+    }
+    
     const updateRetur = await editRetur(id, dataRetur)
     return updateRetur  
 }

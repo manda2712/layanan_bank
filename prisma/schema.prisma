@@ -51,6 +51,7 @@ model returSp2d {
   userId         Int
   noTelpon       String
   alasanRetur    Retur
+  alasanLainnya  String?
   unggah_dokumen String
   monitoring     monitoringReturSp2d[]
   user           user                  @relation(fields: [userId], references: [id])
@@ -60,12 +61,14 @@ enum Retur {
   REKENING_TIDAK_AKTIF
   REKENING_PASIF
   NOMOR_REKENING_SALAH
+  LAINNYA
 }
 
 model monitoringReturSp2d {
   id          Int              @id @default(autoincrement())
   returSp2dId Int
   userId      Int
+  catatan     String?
   status      StatusMonitoring
   returSp2d   returSp2d        @relation(fields: [returSp2dId], references: [id], onDelete: Cascade)
   user        user             @relation(fields: [userId], references: [id])
@@ -76,6 +79,7 @@ model penerbitanBukti {
   kodeSatker     String
   noTelpon       String
   alasanRetur    Pengajuan
+  alasanLainnya  String?
   unggah_dokumen String
   monitoring     monitoringPenerbitanBukti[]
   user           user                        @relation(fields: [userId], references: [id])
@@ -86,6 +90,7 @@ enum Pengajuan {
   REKENING_TIDAK_AKTIF
   REKENING_PASIF
   NOMOR_REKENING_SALAH
+  LAINNYA
 }
 
 model monitoringPenerbitanBukti {
@@ -93,6 +98,7 @@ model monitoringPenerbitanBukti {
   penerbitanBuktiId Int
   userId            Int
   status            StatusMonitoring
+  catatan           String?
   penerbitanBukti   penerbitanBukti  @relation(fields: [penerbitanBuktiId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
 }
@@ -101,7 +107,8 @@ model penerbitanNota {
   id            Int                        @id @default(autoincrement())
   kodeSatker    String
   noTelpon      String
-  tahunSteoran  Tahun
+  tahunSetoran  Tahun
+  tahunLainnya  String?
   unggahDokumen String
   monitoring    monitoringPenerbitanNota[]
   user          user                       @relation(fields: [userId], references: [id])
@@ -111,12 +118,14 @@ model penerbitanNota {
 enum Tahun {
   T2025
   T2024
+  LAINNYA
 }
 
 model monitoringPenerbitanNota {
   id               Int              @id @default(autoincrement())
   penerbitanNotaId Int
   status           StatusMonitoring
+  catatan          String?
   penerbitanNota   penerbitanNota   @relation(fields: [penerbitanNotaId], references: [id], onDelete: Cascade)
   user             user             @relation(fields: [userId], references: [id])
   userId           Int
@@ -137,6 +146,7 @@ model monitoringPengembalianPnbp {
   id                 Int              @id @default(autoincrement())
   pengembalianPnbpId Int
   status             StatusMonitoring
+  catatan            String?
   pengembalianPnbp   pengembalianPnbp @relation(fields: [pengembalianPnbpId], references: [id], onDelete: Cascade)
   user               user             @relation(fields: [userId], references: [id])
   userId             Int
@@ -146,8 +156,9 @@ model koreksiPenerimaan {
   id            Int                           @id @default(autoincrement())
   kodeSatker    String
   noTelpon      String
-  tahunSteoran  Tahun
-  unggahDokumem String
+  tahunSetoran  Tahun
+  tahunLainnya  String?
+  unggahDokumen String
   monitoring    monitoringKoreksiPenerimaan[]
   user          user                          @relation(fields: [userId], references: [id])
   userId        Int
@@ -157,6 +168,7 @@ model monitoringKoreksiPenerimaan {
   id                  Int               @id @default(autoincrement())
   koreksiPenerimaanId Int
   status              StatusMonitoring
+  catatan             String?
   koreksiPenerimaan   koreksiPenerimaan @relation(fields: [koreksiPenerimaanId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])
   userId              Int
@@ -177,6 +189,7 @@ model monitoringPengajuanVoid {
   id              Int              @id @default(autoincrement())
   pengajuanVoidId Int
   status          StatusMonitoring
+  catatan         String?
   pengajuanVoid   pengajuanVoid    @relation(fields: [pengajuanVoidId], references: [id], onDelete: Cascade)
   user            user             @relation(fields: [userId], references: [id])
   userId          Int
@@ -197,6 +210,7 @@ model monitoringPembukaanRekening {
   id                  Int               @id @default(autoincrement())
   pembukaanRekeningId Int
   status              StatusMonitoring
+  catatan             String?
   pembukaanRekening   pembukaanRekening @relation(fields: [pembukaanRekeningId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])
   userId              Int
@@ -222,6 +236,7 @@ model monitoringLaporanRekening {
   id                Int              @id @default(autoincrement())
   laporanRekeningId Int
   status            StatusMonitoring
+  catatan           String?
   laporanRekening   laporanRekening  @relation(fields: [laporanRekeningId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
   userId            Int
@@ -247,6 +262,7 @@ model monitoringPengembalianPfk {
   id                Int              @id @default(autoincrement())
   pengembalianPfkId Int
   status            StatusMonitoring
+  catatan           String?
   pengembalianPfk   pengembalianPfk  @relation(fields: [pengembalianPfkId], references: [id], onDelete: Cascade)
   userId            Int
   user              user             @relation(fields: [userId], references: [id])

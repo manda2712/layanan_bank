@@ -7,6 +7,7 @@ async function insertRetur(dataRetur, userId) {
             kodeSatker : dataRetur.kodeSatker,
             noTelpon : dataRetur.noTelpon,
             alasanRetur : dataRetur.alasanRetur, 
+            alasanLainnya: dataRetur.alasanLainnya || null,
             unggah_dokumen : dataRetur.unggah_dokumen,
             userId : userId,
             monitoring:{
@@ -27,7 +28,8 @@ async function findRetur() {
             id: true,
             kodeSatker : true,
             noTelpon : true,
-            alasanRetur : true, 
+            alasanRetur : true,
+            alasanLainnya: true,
             unggah_dokumen : true        
         }
     })
@@ -44,6 +46,7 @@ async function findReturById(id) {
             kodeSatker : true,
             noTelpon : true,
             alasanRetur : true, 
+            alasanLainnya: true,
             unggah_dokumen : true   
             
         }
@@ -59,7 +62,8 @@ async function editRetur(id, dataRetur) {
         data :{
             kodeSatker : dataRetur.kodeSatker,
             noTelpon : dataRetur.noTelpon,
-            alasanRetur : dataRetur.alasanRetur, 
+            alasanRetur : dataRetur.alasanRetur,
+            alasanLainnya: dataRetur.alasanLainnya || null, 
             unggah_dokumen : dataRetur.unggah_dokumen 
         }
     })
