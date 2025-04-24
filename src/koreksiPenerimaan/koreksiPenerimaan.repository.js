@@ -47,35 +47,52 @@ async function findKoreksiPenerimaan () {
 }
 
 async function findKoreksiPenerimaanById (id) {
-  const koreksiPenerimaan = await prisma.koreksiPenerimaan.findUnique({
+  const koreksiPenerimaan = await prisma.koreksiPenerimaan.findFirst({
     where: {
       id: parseInt(id)
     },
-    select: {
-      id: true,
-      kodeSatker: true,
-      noTelpon: true,
-      tahunSetoran: true,
-      tahunLainnya: true,
-      unggahDokumen: true
+    include: {
+      monitoring: {
+        select: {
+          status: true
+        }
+      }
     }
   })
   return koreksiPenerimaan
 }
 
 async function editKoreksiPenerimaan (id, dataKoreksi) {
+  const koreksiPenerimaan = await prisma.koreksiPenerimaan.findUnique({
+    where: { id: parseInt(id) },
+    include: { monitoring: true }
+  })
+
+  if (!koreksiPenerimaan) {
+    throw new Error('Koreksi Penerimaan tidak ditemukan')
+  }
+
+  if (!koreksiPenerimaan.unggahDokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakan')
+  }
+
   const updateKoreksiPenerimaan = await prisma.koreksiPenerimaan.update({
-    where: {
-      id: parseInt(id)
-    },
+    where: { id: parseInt(id) },
     data: {
-      kodeSatker: dataKoreksi.kodeSatker,
-      noTelpon: dataKoreksi.noTelpon,
-      tahunSetoran: dataKoreksi.tahunSteoran,
-      tahunLainnya: dataKoreksi.tahunLainnya,
       unggahDokumen: dataKoreksi.unggahDokumen
     }
   })
+
+  if (koreksiPenerimaan.monitoring && koreksiPenerimaan.monitoring.length > 0) {
+    const lastMonitoring =
+      koreksiPenerimaan.monitoring[koreksiPenerimaan.monitoring.length - 1]
+    await prisma.monitoringKoreksiPenerimaan.update({
+      where: { id: lastMonitoring.id },
+      data: {
+        status: 'DIPROSES'
+      }
+    })
+  }
   return updateKoreksiPenerimaan
 }
 

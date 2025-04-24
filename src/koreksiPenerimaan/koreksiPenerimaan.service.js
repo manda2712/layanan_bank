@@ -50,13 +50,32 @@ async function getKoreksiPenerimaanById (id) {
 }
 
 async function editKoreksiPenerimaanById (id, dataKoreksi) {
-  await getKoreksiPenerimaanById(id)
+  const koreksiPenerimaan = await getKoreksiPenerimaanById(id)
+
+  if (!koreksiPenerimaan) {
+    throw new Error(`Koreksi Penerimaan ID ${id} tidak ditemukan`)
+  }
+
+  const isRejected = Array.isArray(koreksiPenerimaan.monitoring)
+    ? isRejected.monitoring.some(m => m.status === 'DITOLAK')
+    : false
+
+  if (isRejected && !dataKoreksi.unggahDokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakkan')
+  }
+
   // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
   if (dataKoreksi.tahunSetoran === 'LAINNYA' && !dataKoreksi.tahunLainnya) {
     throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
   }
-  const updateKoreksiPenerimaan = await editKoreksiPenerimaan(id, dataKoreksi)
-  return updateKoreksiPenerimaan
+
+  try {
+    const updateKoreksiPenerimaan = await editKoreksiPenerimaan(id, dataKoreksi)
+    return updateKoreksiPenerimaan
+  } catch (error) {
+    console.error('Error saat update Koreksi Penerimaan:', error)
+    throw error
+  }
 }
 
 async function deleteKoreksiPenerimaanById (id) {

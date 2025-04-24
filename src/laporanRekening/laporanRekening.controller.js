@@ -82,20 +82,49 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const laporanRekeningId = req.params.id
-    const dataRekening = req.body
-    const updateLaporanRekening =
-      await laporanRekeningService.updateLaporanRekeningById(
-        laporanRekeningId,
-        dataRekening
-      )
-    res.status(200).json({ updateLaporanRekening, message: 'berhasil diubah' })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const laporanRekeningId = req.params.id
+      const dataLaporan = req.body
+      const laporanRekening =
+        await laporanRekeningService.getLaporanRekeningById(laporanRekeningId)
+
+      const isRejected = Array.isArray(laporanRekening?.monitoring)
+        ? monitoring => monitoring.some(monitoring.status === 'DITOLAK')
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .json(400)
+          .json({ message: 'Dokumen harus diunggah setelah penolakan' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null
+
+      if (unggahDokumen) {
+        dataLaporan.unggahDokumen = unggahDokumen
+      }
+      const updateLaporanRekening =
+        await laporanRekeningService.updateLaporanRekeningById(
+          laporanRekeningId,
+          {
+            ...dataLaporan,
+            unggahDokumen
+          }
+        )
+      res
+        .status(200)
+        .json({ updateLaporanRekening, message: 'berhasil diubah' })
+    } catch (error) {
+      console.error('Error saat update Laporan Rekening:', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

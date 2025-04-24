@@ -108,23 +108,49 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', adminAuthorize, async (req, res) => {
-  try {
-    const koreksiPenerimaanId = req.params.id
-    const dataBukti = req.body
-    const updateKoreksiPenerimaan =
-      await koreksiPenerimaanService.editKoreksiPenerimaanById(
-        koreksiPenerimaanId,
-        dataBukti
-      )
-    res.status(200).json({
-      updateKoreksiPenerimaan,
-      message: 'Koreksi Penermaan Berhasil Diubah'
-    })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const koreksiPenerimaanId = req.params.id
+      const dataKoreksi = req.body
+      const koreksiPenerimaan =
+        await koreksiPenerimaanService.getKoreksiPenerimaanById(
+          koreksiPenerimaanId
+        )
+
+      const isRejected = Array.isArray(koreksiPenerimaan?.monitoring)
+        ? koreksiPenerimaan.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (!isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan.' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null
+
+      if (unggahDokumen) {
+        dataKoreksi.unggahDokumen = unggahDokumen
+      }
+
+      const updateKoreksiPenerimaan =
+        await koreksiPenerimaanService.deleteKoreksiPenerimaanById()
+      res.status(200).json({
+        updateKoreksiPenerimaan,
+        message: 'Koreksi Penermaan Berhasil Diubah'
+      })
+    } catch (error) {
+      console.error('Error Saat update Koreksi Penerimaan', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {
