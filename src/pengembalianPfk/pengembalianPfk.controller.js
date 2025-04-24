@@ -85,25 +85,51 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const pengembalianPfkId = req.params.id
-    const dataPfk = req.body
-    const updatePengembalianPfk =
-      await pengembalianPfkService.updatePengembalianPfkById(
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const pengembalianPfkId = req.params.id
+      const dataPfk = req.body
+      const pengembalianPfk =
+        await pengembalianPfkService.getPengembalianPfkById(pengembalianPfkId)
+      const isRejected = Array.isArray(pengembalianPfk?.monitoring)
+        ? pengembalianPfk.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null // Ambil path file
+
+      if (unggahDokumen) {
+        dataPfk.unggahDokumen = unggahDokumen
+      }
+
+      const updatePfk = await pengembalianPfkService.updatePengembalianPfkById(
         pengembalianPfkId,
-        dataPfk
+        {
+          ...dataPfk,
+          unggahDokumen
+        }
       )
-    res
-      .status(200)
-      .json({
-        updatePengembalianPfk,
+      res.status(200).json({
+        updatePfk,
         message: 'Pengembalian PFK berhasil diubah'
       })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+    } catch (error) {
+      console.error('Error saat update pfk:', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

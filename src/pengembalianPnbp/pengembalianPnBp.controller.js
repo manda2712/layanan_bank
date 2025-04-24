@@ -5,6 +5,7 @@ const path = require('path')
 const fs = require('fs')
 const pengembalianPnbpService = require('./pengembalianPnBp.service')
 const authorizeJWT = require('../middleware/authorizeJWT')
+const { error } = require('console')
 
 const uploadDir = path.join(__dirname, '..', 'uploads')
 if (!fs.existsSync(uploadDir)) {
@@ -77,28 +78,65 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const pengembalianPnBpId = parseInt(req.params.id)
-    const pengembalianPnBp =
-      await pengembalianPnbpService.getPengembalianPnbpById(pengembalianPnBpId)
-    res.status(200).json(pengembalianPnBp)
+    const dataPnbp = await pengembalianPnbpService.getPengembalianPnbpById(
+      pengembalianPnBpId
+    )
+    res.status(200).json(dataPnbp)
   } catch (error) {
     res.status(400).send(error.message)
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const pengembalianPnBpId = req.params.id
-    const dataPnbp = req.body
-    const updatePengembalianPnbp =
-      await pengembalianPnbpService.editPengembalianPnbpById(
-        pengembalianPnBpId,
-        dataPnbp
-      )
-    res.status(200).json({ updatePengembalianPnbp, message: 'berhasill' })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const pengembalianPnBpId = req.params.id
+      const dataPnbp = req.body
+      const pengembalianPnBp =
+        await pengembalianPnbpService.getPengembalianPnbpById(
+          pengembalianPnBpId
+        )
+
+      const isRejected = Array.isArray(pengembalianPnBp)
+        ? pengembalianPnBp.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah Setelah Penelokan' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null
+
+      if (unggahDokumen) {
+        dataPnbp.unggahDokumen = unggahDokumen
+      }
+
+      const updatePengembalianPnbp =
+        await pengembalianPnbpService.editPengembalianPnbpById(
+          pengembalianPnBpId,
+          {
+            ...dataPnbp,
+            unggahDokumen
+          }
+        )
+
+      res.status(200).json({
+        updatePengembalianPnbp,
+        message: 'Pengembalian Pnbp berhasil diubah'
+      })
+    } catch (error) {
+      console.error('Error saat Update Pengembalian Pnbp:', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

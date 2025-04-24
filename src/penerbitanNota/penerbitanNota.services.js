@@ -41,13 +41,30 @@ async function getPenerbitanNotaById (id) {
 }
 
 async function editPenerbitanNotaById (id, dataNota) {
-  await getPenerbitanNotaById(id)
+  const penerbitanNota = await getPenerbitanNotaById(id)
+
+  if (!penerbitanNota) {
+    throw new Error(`Penerbitan Nota dengan ID ${id} tidak ditemukan`)
+  }
+
+  const isRejected = Array.isArray(penerbitanNota.monitoring)
+    ? penerbitanNota.monitoring.some(m => m.status === 'DITOLAK')
+    : false
+
+  if (isRejected && !dataNota.unggahDokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakan')
+  }
   // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
   if (dataNota.tahunSetoran === 'LAINNYA' && !dataNota.tahunLainnya) {
     throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
   }
-  const updatePenerbitanNota = await editPenerbitanNota(id, dataNota)
-  return updatePenerbitanNota
+  try {
+    const updatePenerbitanNota = await editPenerbitanNota(id, dataNota)
+    return updatePenerbitanNota
+  } catch (error) {
+    console.error('Error saat update Penerbitan Nota:', error)
+    throw error
+  }
 }
 
 async function deletePenerbitanNotaById (id) {

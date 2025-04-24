@@ -1,3 +1,4 @@
+const prisma = require('../db')
 const {
   InsertPenerbitanBukti,
   findPenerbitan,
@@ -38,15 +39,32 @@ async function getPenerbitanBuktiById (id) {
 }
 
 async function editPenerbitanBuktiById (id, dataBukti) {
-  await getPenerbitanBuktiById(id)
+  const penerbitanBukti = await getPenerbitanBuktiById(id)
+
+  if (!penerbitanBukti) {
+    throw new Error(`Penerbitan Bukti dengan ID ${id} tidak dapat ditemukan`)
+  }
+
+  const isRejected = Array.isArray(penerbitanBukti.monitoring)
+    ? penerbitanBukti.monitoring.some(m => m.status === 'DITOLAK')
+    : false
+
+  if (isRejected && !dataBukti.unggah_dokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakan')
+  }
 
   // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
   if (dataBukti.alasanRetur === 'LAINNYA' && !dataBukti.alasanLainnya) {
     throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
   }
 
-  const updateBukti = await editPenerbitanBukti(id, dataBukti)
-  return updateBukti
+  try {
+    const updateBukti = await editPenerbitanBukti(id, dataBukti)
+    return updateBukti
+  } catch (error) {
+    console.error('Error saat update retur:', error)
+    throw error
+  }
 }
 
 async function deletePenerbitanBuktiById (id) {

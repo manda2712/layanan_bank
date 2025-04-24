@@ -85,22 +85,51 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', adminAuthorize, async (req, res) => {
-  try {
-    const pengajuanVoidId = req.params.id
-    const dataVoid = req.body
-    const updatePengajuanVoid =
-      await pengajuanVoidService.editPengajuanVoidById(
-        pengajuanVoidId,
-        dataVoid
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const pengajuanVoidId = req.params.id
+      const dataVoid = req.body
+
+      const pengajuanVoid = await pengajuanVoidService.getPengajuanVoidById(
+        pengajuanVoidId
       )
-    res
-      .status(200)
-      .json({ updatePengajuanVoid, message: 'Pengajuan Void Berhasil Diubah' })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+
+      const isRejected = Array.isArray(pengajuanVoid?.monitoring)
+        ? pengajuanVoid.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null // Ambil path file
+
+      if (unggahDokumen) {
+        dataVoid.unggahDokumen = unggahDokumen
+      }
+      const updatePengajuanVoid =
+        await pengajuanVoidService.editPengajuanVoidById(pengajuanVoidId, {
+          ...dataVoid,
+          unggahDokumen
+        })
+      res.status(200).json({
+        updatePengajuanVoid,
+        message: 'Pengajuan Void berhasil diubah'
+      })
+    } catch (error) {
+      console.error('Error saat update Pengajuan Void')
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

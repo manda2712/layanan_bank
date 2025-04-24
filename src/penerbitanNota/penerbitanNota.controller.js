@@ -87,23 +87,51 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const penerbitanNotaId = req.params.id
-    const dataNota = req.body
-    const updatePenerbitanNota =
-      await penerbitanNotaService.editPenerbitanNotaById(
-        penerbitanNotaId,
-        dataNota
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggahDokumen'),
+  async (req, res) => {
+    try {
+      const penerbitanNotaId = req.params.id
+      const dataNota = req.body
+      const penerbitanNota = await penerbitanNotaService.getPenerbitanNotaById(
+        penerbitanNotaId
       )
-    res.status(200).json({
-      updatePenerbitanNota,
-      message: 'Penerbitan Nota Bershasil Diubah'
-    })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+
+      const isRejected = Array.isArray(penerbitanNota?.monitoring)
+        ? penerbitanNota.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (!isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
+      }
+
+      const unggahDokumen = req.file ? req.file.filename : null
+
+      if (unggahDokumen) {
+        dataNota.unggahDokumen = unggahDokumen
+      }
+
+      const updatePenerbitanNota =
+        await penerbitanNotaService.editPenerbitanNotaById(penerbitanNotaId, {
+          ...dataNota,
+          unggahDokumen
+        })
+      res.status(200).json({
+        updatePenerbitanNota,
+        message: 'Penerbitan Nota Bershasil Diubah'
+      })
+    } catch (error) {
+      console.log('Error saat update Penerbitan NOTA:', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

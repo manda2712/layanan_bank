@@ -5,6 +5,8 @@ const path = require('path')
 const fs = require('fs')
 const PenerbitanBukstiService = require('./penerbitanBukti.services')
 const authorizeJWT = require('../middleware/authorizeJWT')
+const { arrayBuffer } = require('stream/consumers')
+const { Retur } = require('@prisma/client')
 
 const uploadDir = path.join(__dirname, '..', 'uploads')
 if (!fs.existsSync(uploadDir)) {
@@ -89,21 +91,52 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const penerbitanBuktiId = req.params.id
-    const dataBukti = req.body
-    const updateBukti = await PenerbitanBukstiService.editPenerbitanBuktiById(
-      penerbitanBuktiId,
-      dataBukti
-    )
-    res
-      .status(200)
-      .json({ updateBukti, message: 'Update Penerbitan Bukti Berhasil' })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggah_Dokumen'),
+  async (req, res) => {
+    try {
+      const penerbitanBuktiId = req.params.id
+      const dataBukti = req.body
+      const penerbitanBukti =
+        await PenerbitanBukstiService.getPenerbitanBuktiById(penerbitanBuktiId)
+
+      const isRejected = Array.isArray(penerbitanBukti?.monitoring)
+        ? penerbitanBukti.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
+      }
+
+      const unggah_dokumen = req.file ? req.file.filename : null
+
+      if (unggah_dokumen) {
+        dataBukti.unggah_dokumen = unggah_dokumen
+      }
+
+      const updateBukti = await PenerbitanBukstiService.editPenerbitanBuktiById(
+        penerbitanBuktiId,
+        {
+          ...dataBukti,
+          unggah_dokumen
+        }
+      )
+
+      res
+        .status(200)
+        .json({ updateBukti, message: 'Update Penerbitan Bukti Berhasil' })
+    } catch (error) {
+      console.error('Error Saat update Penerbitan Bukti')
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

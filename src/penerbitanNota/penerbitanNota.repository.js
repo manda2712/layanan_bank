@@ -48,35 +48,54 @@ async function findPenerbitanNota () {
 }
 
 async function findPenerbitanNotaById (id) {
-  const penerbitanNota = await prisma.penerbitanNota.findUnique({
-    where: {
-      id: parseInt(id)
-    },
-    select: {
-      id: true,
-      kodeSatker: true,
-      noTelpon: true,
-      tahunSetoran: true,
-      tahunLainnya: true,
-      unggahDokumen: true
+  const penerbitanNota = await prisma.penerbitanNota.findFirst({
+    where: { id: Number(id) },
+    include: {
+      monitoring: {
+        select: {
+          status: true // ambil hanya field tertentu dari relasi monitoring
+        }
+      }
     }
   })
   return penerbitanNota
 }
 
 async function editPenerbitanNota (id, dataNota) {
-  const updatePenerbitanNota = await prisma.penerbitanNota.update({
+  const penerbitanNota = await prisma.penerbitanNota.findUnique({
     where: {
       id: parseInt(id)
     },
+    include: {
+      monitoring: true
+    }
+  })
+
+  if (!penerbitanNota) {
+    throw new Error('Penerbitan Nota tidak ditemukan')
+  }
+
+  if (!dataNota.unggahDokumen) {
+    throw new Error('Dokumen baru harus diubah setelah penolakan')
+  }
+
+  const updatePenerbitanNota = await prisma.penerbitanNota.update({
+    where: { id: parseInt(id) },
     data: {
-      kodeSatker: dataNota.kodeSatker,
-      noTelpon: dataNota.noTelpon,
-      tahunSetoran: dataNota.tahunSetoran,
-      tahunLainnya: dataNota.tahunLainnya || null,
       unggahDokumen: dataNota.unggahDokumen
     }
   })
+
+  if (penerbitanNota.monitoring && penerbitanNota.monitoring.length > 0) {
+    const lastMonitoring =
+      penerbitanNota.monitoring[penerbitanNota.monitoring.length - 1]
+    await prisma.monitoringPenerbitanNota.update({
+      where: { id: lastMonitoring.id },
+      data: {
+        status: 'DIPROSES'
+      }
+    })
+  }
   return updatePenerbitanNota
 }
 

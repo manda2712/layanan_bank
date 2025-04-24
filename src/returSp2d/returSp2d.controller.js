@@ -86,16 +86,50 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.patch('/:id', async (req, res) => {
-  try {
-    const returId = req.params.id
-    const dataRetur = req.body
-    const updateRetur = await returService.editReturById(returId, dataRetur)
-    res.status(200).json({ updateRetur, message: 'Retur SP2D berhasil diubah' })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  authorizeJWT,
+  upload.single('unggah_dokumen'),
+  async (req, res) => {
+    try {
+      const returId = req.params.id
+      const dataRetur = req.body
+
+      const returSp2d = await returService.getAllReturById(returId)
+
+      // ✅ Validasi jika returSp2d atau monitoring tidak tersedia
+      const isRejected = Array.isArray(returSp2d?.monitoring)
+        ? returSp2d.monitoring.some(
+            monitoring => monitoring.status === 'DITOLAK'
+          )
+        : false
+
+      if (isRejected && !req.file) {
+        return res
+          .status(400)
+          .json({ message: 'Dokumen baru harus diunggah setelah penolakan.' })
+      }
+
+      const unggah_dokumen = req.file ? req.file.filename : null // Ambil path file
+
+      if (unggah_dokumen) {
+        dataRetur.unggah_dokumen = unggah_dokumen
+      }
+
+      const updateRetur = await returService.editReturById(returId, {
+        ...dataRetur,
+        unggah_dokumen
+      })
+
+      res
+        .status(200)
+        .json({ updateRetur, message: 'Retur SP2D berhasil diubah' })
+    } catch (error) {
+      console.error('Error saat update retur:', error)
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', async (req, res) => {
   try {

@@ -53,6 +53,8 @@ model returSp2d {
   alasanRetur    Retur
   alasanLainnya  String?
   unggah_dokumen String
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
   monitoring     monitoringReturSp2d[]
   user           user                  @relation(fields: [userId], references: [id])
 }
@@ -70,6 +72,8 @@ model monitoringReturSp2d {
   userId      Int
   catatan     String?
   status      StatusMonitoring
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   returSp2d   returSp2d        @relation(fields: [returSp2dId], references: [id], onDelete: Cascade)
   user        user             @relation(fields: [userId], references: [id])
 }

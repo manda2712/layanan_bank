@@ -36,35 +36,56 @@ async function findPenerbitan () {
 }
 
 async function findPenerbitanBuktiById (id) {
-  const penerbitanBukti = await prisma.penerbitanBukti.findUnique({
+  const penerbitanBukti = await prisma.penerbitanBukti.findFirst({
     where: {
       id: parseInt(id)
     },
-    select: {
-      id: true,
-      kodeSatker: true,
-      noTelpon: true,
-      alasanRetur: true,
-      alasanLainnya: true,
-      unggah_dokumen: true
+    include: {
+      monitoring: {
+        select: {
+          status: true
+        }
+      }
     }
   })
   return penerbitanBukti
 }
 
 async function editPenerbitanBukti (id, dataBukti) {
-  const updateBukti = await prisma.penerbitanBukti.update({
+  const penerbitanBukti = await prisma.penerbitanBukti.findUnique({
     where: {
       id: parseInt(id)
     },
+    include: {
+      monitoring: true
+    }
+  })
+
+  if (!penerbitanBukti) {
+    throw new Error(`Penerbitan Bukti tidak ditemukan`)
+  }
+
+  if (!dataBukti.unggah_dokumen) {
+    throw new Error('Dokumen Baru harus diubah setelah penolakan')
+  }
+
+  const updateBukti = await prisma.penerbitanBukti.update({
+    where: { id: parseInt(id) },
     data: {
-      kodeSatker: dataBukti.kodeSatker,
-      noTelpon: dataBukti.noTelpon,
-      alasanRetur: dataBukti.alasanRetur,
-      alasanLainnya: dataBukti.alasanLainnya || null,
       unggah_dokumen: dataBukti.unggah_dokumen
     }
   })
+
+  if (penerbitanBukti.monitoring && penerbitanBukti.monitoring.length > 0) {
+    const lastMonitoring =
+      penerbitanBukti.monitoring[penerbitanBukti.monitoring.length - 1]
+    await prisma.monitoringPenerbitanBukti.update({
+      where: { id: lastMonitoring.id },
+      data: {
+        status: 'DIPROSES'
+      }
+    })
+  }
   return updateBukti
 }
 
