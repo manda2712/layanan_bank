@@ -140,7 +140,13 @@ router.patch(
       }
 
       const updateKoreksiPenerimaan =
-        await koreksiPenerimaanService.deleteKoreksiPenerimaanById()
+        await koreksiPenerimaanService.editKoreksiPenerimaanById(
+          koreksiPenerimaanId,
+          {
+            ...dataKoreksi,
+            unggahDokumen
+          }
+        )
       res.status(200).json({
         updateKoreksiPenerimaan,
         message: 'Koreksi Penermaan Berhasil Diubah'

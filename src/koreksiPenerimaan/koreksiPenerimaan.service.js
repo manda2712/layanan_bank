@@ -57,7 +57,7 @@ async function editKoreksiPenerimaanById (id, dataKoreksi) {
   }
 
   const isRejected = Array.isArray(koreksiPenerimaan.monitoring)
-    ? isRejected.monitoring.some(m => m.status === 'DITOLAK')
+    ? koreksiPenerimaan.monitoring.some(m => m.status === 'DITOLAK')
     : false
 
   if (isRejected && !dataKoreksi.unggahDokumen) {

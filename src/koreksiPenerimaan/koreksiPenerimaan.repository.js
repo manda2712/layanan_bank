@@ -49,7 +49,7 @@ async function findKoreksiPenerimaan () {
 async function findKoreksiPenerimaanById (id) {
   const koreksiPenerimaan = await prisma.koreksiPenerimaan.findFirst({
     where: {
-      id: parseInt(id)
+      id: Number(id)
     },
     include: {
       monitoring: {
