@@ -95,3 +95,6 @@ app.use('/api/pengembalianPfk', pengembalianPfkController)
 //monitoring PFK
 const monitoringPengembalianPfkController = require('./monitoringPengembalianPfk/monitoringPengembalianPfk.controller')
 app.use('/api/monitoringPfk', monitoringPengembalianPfkController)
+
+const notificationController = require('./notifikasi/notifikasi.controller')
+app.use('/notifikasi', notificationController)

@@ -42,6 +42,14 @@ async function findUserById (id) {
   return user
 }
 
+async function findAllAdminUsers () {
+  return prisma.user.findMany({
+    where: {
+      role: 'admin'
+    }
+  })
+}
+
 async function editUser (id, user) {
   const updateUser = await prisma.user.update({
     where: {
@@ -67,4 +75,11 @@ async function deleteUser (id) {
   })
 }
 
-module.exports = { insertUser, findUser, findUserById, editUser, deleteUser }
+module.exports = {
+  insertUser,
+  findUser,
+  findUserById,
+  editUser,
+  deleteUser,
+  findAllAdminUsers
+}

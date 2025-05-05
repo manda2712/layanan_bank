@@ -98,6 +98,9 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const koreksiPenerimaanId = parseInt(req.params.id)
+    if (isNaN(koreksiPenerimaanId)) {
+      return res.status(400).json({ message: 'ID tidak valid' })
+    }
     const koreksiPenerimaan =
       await koreksiPenerimaanService.getKoreksiPenerimaanById(
         koreksiPenerimaanId

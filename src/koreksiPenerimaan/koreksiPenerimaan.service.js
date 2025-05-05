@@ -6,6 +6,9 @@ const {
   deleteKoreksiPenerimaan
 } = require('./koreksiPenerimaan.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createKoreksiPenerimaan (dataKoreksi, userId) {
   try {
     if (!userId) {
@@ -28,6 +31,14 @@ async function createKoreksiPenerimaan (dataKoreksi, userId) {
 
     // Pastikan data berhasil disimpan
     console.log('Koreksi Penerimaan berhasil dibuat:', newKoreksiPenerimaan)
+
+    // 🔔 Kirim notifikasi ke semua admin
+    const adminUsers = await getAllAdminUsers() // Menggunakan service untuk mengambil data admin
+    const notifMessage = `Kode Satker ${newKoreksiPenerimaan.kodeSatker} telah mengajukan dokumen koreksi penerimaan.`
+
+    for (const admin of adminUsers) {
+      await createNotification(admin.id, notifMessage, newKoreksiPenerimaan.id)
+    }
 
     return newKoreksiPenerimaan
   } catch (error) {

@@ -3,6 +3,7 @@ const {
   insertUser,
   findUser,
   findUserById,
+  findAllAdminUsers,
   editUser,
   deleteUser
 } = require('./user.repository')
@@ -29,6 +30,16 @@ async function getUserById (id) {
   return user
 }
 
+async function getAllAdminUsers () {
+  try {
+    const admins = await findAllAdminUsers()
+    return admins
+  } catch (error) {
+    console.error('Error mengambil data admin:', error)
+    throw new Error('Gagal mengambil data admin')
+  }
+}
+
 async function editUserById (id, user) {
   if (user.password) {
     const hashedPassword = await bcrypt.hash(user.password, 10)
@@ -48,6 +59,7 @@ module.exports = {
   createUser,
   getAllUser,
   getUserById,
+  getAllAdminUsers,
   editUserById,
   deleteUserById
 }
