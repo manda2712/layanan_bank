@@ -5,6 +5,9 @@ const {
   editPengembalianPfk
 } = require('./pengembalianPfk.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createPengembalianPfk (dataPfk, userId) {
   try {
     if (!userId) {
@@ -12,6 +15,17 @@ async function createPengembalianPfk (dataPfk, userId) {
     }
 
     const newPengembalianPfk = await insertPengembalianPfk(dataPfk, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newPengembalianPfk.kodeSatker} telah mengajukan dokumen Pengembalian PFK.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newPengembalianPfk.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pengembalianPfk' // isi sesuai kebutuhan
+      })
+    }
     return newPengembalianPfk
   } catch (error) {
     throw new Error('Gagal Membuat Pengembalian PFK')

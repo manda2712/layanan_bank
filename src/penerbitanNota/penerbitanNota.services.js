@@ -7,6 +7,9 @@ const {
   deletePenerbitanNota
 } = require('./penerbitanNota.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createPenerbitanNota (dataNota, userId) {
   try {
     if (!userId) {
@@ -20,6 +23,17 @@ async function createPenerbitanNota (dataNota, userId) {
     }
 
     const newPenerbitanNota = await InsertPenerbitanNota(dataNota, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newPenerbitanNota.kodeSatker} telah mengajukan dokumen Pengajuan Penerbitan Nota Konfirmasi atas Penerimaan Negara.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newPenerbitanNota.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'penerbitanNota' // isi sesuai kebutuhan
+      })
+    }
     return newPenerbitanNota
   } catch (error) {
     console.error('Error di Service:', error)

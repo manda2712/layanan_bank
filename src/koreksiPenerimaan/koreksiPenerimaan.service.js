@@ -37,7 +37,12 @@ async function createKoreksiPenerimaan (dataKoreksi, userId) {
     const notifMessage = `Kode Satker ${newKoreksiPenerimaan.kodeSatker} telah mengajukan dokumen koreksi penerimaan.`
 
     for (const admin of adminUsers) {
-      await createNotification(admin.id, notifMessage, newKoreksiPenerimaan.id)
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newKoreksiPenerimaan.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pengembalianPnbp' // isi sesuai kebutuhan
+      })
     }
 
     return newKoreksiPenerimaan

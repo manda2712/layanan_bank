@@ -1,35 +1,37 @@
 const prisma = require('../db')
 
-async function createNotification (
+async function createNotification ({
   userId,
   message,
-  monitoringKoreksiPenerimaanId,
-  link
-) {
+  monitoringId,
+  monitoringType
+}) {
   return await prisma.notification.create({
     data: {
       userId,
       message,
-      monitoringKoreksiPenerimaanId,
-      status: 'unread',
-      link
+      monitoringId,
+      monitoringType,
+      status: 'unread'
     }
   })
 }
 
 async function getNotificationsByUser (userId) {
+  console.log('Fetching notifications for userId:', userId)
   const notif = await prisma.notification.findMany({
     where: { userId },
     select: {
       id: true,
       message: true,
+      monitoringId: true,
+      monitoringType: true,
       status: true,
-      link: true,
       createdAt: true
     },
     orderBy: { createdAt: 'desc' }
   })
-  console.log(notif) // 👉 log sekarang akan tampil
+  console.log('Notifications fetched:', notif)
   return notif
 }
 

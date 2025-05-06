@@ -21,6 +21,9 @@ async function findMonitoringKoreksiPenerimaan () {
           }
         }
       }
+    },
+    orderBy: {
+      id: 'asc' // atau 'desc' kalau ingin terbaru di atas
     }
   })
   return monitoring

@@ -6,6 +6,9 @@ const {
   deleteLaporanRekening
 } = require('./laporanRekening.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createLaporanRekening (dataLaporan, userId) {
   try {
     if (!userId) {
@@ -13,6 +16,17 @@ async function createLaporanRekening (dataLaporan, userId) {
     }
 
     const newLaporanRekening = await insertLaporanRekening(dataLaporan, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newLaporanRekening.kodeSatker} telah mengajukan dokumen Permohonan Persetujuan Pembukaan Rekening Satker.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newLaporanRekening.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'laporanRekening' // isi sesuai kebutuhan
+      })
+    }
     return newLaporanRekening
   } catch (error) {
     console.error('Error saat membuat laporan rekening:', error)

@@ -1,4 +1,3 @@
-const { returSp2d } = require('../db')
 const {
   insertRetur,
   findRetur,
@@ -6,6 +5,9 @@ const {
   editRetur,
   deleteDataRetur
 } = require('./returSp2d.repository')
+
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
 
 async function createRetur (dataRetur, userId) {
   try {
@@ -17,7 +19,24 @@ async function createRetur (dataRetur, userId) {
       throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
     }
 
+    console.log('Data yang akan disimpan:', dataRetur)
+
     const newRetur = await insertRetur(dataRetur, userId)
+
+    console.log('Koreksi Penerimaan berhasil dibuat:', newRetur)
+
+    // 🔔 Kirim notifikasi ke semua admin
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newRetur.kodeSatker} telah mengajukan dokumen Penyelesaian Retur.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newRetur.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'returSp2d' // isi sesuai kebutuhan
+      })
+    }
     return newRetur
   } catch (error) {
     console.error('Error sata membuat data Retur SP2D', error)

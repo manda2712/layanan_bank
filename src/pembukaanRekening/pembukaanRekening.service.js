@@ -1,5 +1,3 @@
-const prisma = require('../db')
-const { pembukaanRekening } = require('../db')
 const {
   insertPembukaanRekening,
   findPembukaanRekening,
@@ -8,6 +6,9 @@ const {
   deletePembukaanRekening
 } = require('./pembukaanRekening.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createPembukaanRekening (dataRekening, userId) {
   try {
     if (!userId) {
@@ -15,6 +16,17 @@ async function createPembukaanRekening (dataRekening, userId) {
     }
 
     const newRekening = await insertPembukaanRekening(dataRekening, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newRekening.kodeSatker} telah mengajukan dokumen Pengajuan Persetujuan Pembukaan Rekening.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newRekening.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pembukaanRekening' // isi sesuai kebutuhan
+      })
+    }
     return newRekening
   } catch (error) {
     console.error('Error saat membuat pembukaan rekening:', error)

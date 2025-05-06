@@ -8,13 +8,14 @@ async function sendDokumenNotification (
   userId,
   kodeSatker,
   status,
-  monitoringId
+  monitoringId,
+  monitoringType
 ) {
   const message = `Pengajuan dokumen dengan kode satker ${kodeSatker} telah ${
     status === 'approved' ? 'diterima' : 'ditolak'
   }.`
 
-  return await createNotification(userId, message, monitoringId) // 🟢 tambahkan link ke pa// null jika tidak terkait koreksiPenerimaan
+  return await createNotification(userId, message, monitoringId, monitoringType) // 🟢 tambahkan link ke pa// null jika tidak terkait koreksiPenerimaan
 }
 
 async function getUserNotifications (userId) {

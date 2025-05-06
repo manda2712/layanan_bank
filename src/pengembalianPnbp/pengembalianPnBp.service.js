@@ -6,6 +6,9 @@ const {
   deletePengembalianPnbp
 } = require('./pengembalianPnBp.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createPengembalianPnbp (dataPnbp, userId) {
   try {
     if (!userId) {
@@ -13,8 +16,20 @@ async function createPengembalianPnbp (dataPnbp, userId) {
     }
 
     const newPengembalianPnbp = await insertPengembalianPnbp(dataPnbp, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newPengembalianPnbp.kodeSatker} telah mengajukan dokumen Pengembalian PNBP.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newPengembalianPnbp.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pengembalianPnbp' // isi sesuai kebutuhan
+      })
+    }
     return newPengembalianPnbp
   } catch (error) {
+    console.error('Error sata membuat Pengembalian PNBP', error)
     throw new Error('Gagal Membuat Pengembalian PNBP')
   }
 }

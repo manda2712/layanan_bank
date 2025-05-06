@@ -7,6 +7,9 @@ const {
   deletePenerbitanBukti
 } = require('./penerbitanBukti.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function createPenerbitanBukti (dataBukti, userId) {
   try {
     if (!userId) {
@@ -19,6 +22,17 @@ async function createPenerbitanBukti (dataBukti, userId) {
     }
 
     const newPenerbitan = await InsertPenerbitanBukti(dataBukti, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newPenerbitan.kodeSatker} telah mengajukan dokumen Penerimaan Bukti Penerimaan Negara.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newPenerbitan.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'penerbitanBukti' // isi sesuai kebutuhan
+      })
+    }
     return newPenerbitan
   } catch (error) {
     throw new Error('Gagal Membuat Penerbitan Bukti')

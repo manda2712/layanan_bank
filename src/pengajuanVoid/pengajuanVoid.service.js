@@ -7,12 +7,26 @@ const {
   editPengajuanVoid
 } = require('./pengajuanVoid.repository')
 
+const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { createNotification } = require('../notifikasi/notifikasi.repository')
+
 async function creatPengajuanVoid (dataVoid, userId) {
   try {
     if (!userId) {
       throw new Error('User Id Tidak Ditemukan')
     }
     const newPengajuanVoid = await insertPengajuanVoid(dataVoid, userId)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${newPengajuanVoid.kodeSatker} telah mengajukan dokumen Permohonan Void.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: newPengajuanVoid.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pengajuanVoid' // isi sesuai kebutuhan
+      })
+    }
     return newPengajuanVoid
   } catch (error) {
     throw new Error('Gagal Membuat Pengajuan Void')
