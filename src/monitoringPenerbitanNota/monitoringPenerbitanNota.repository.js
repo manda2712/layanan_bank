@@ -12,6 +12,7 @@ async function findMonitoringPenerbitanNota () {
           kodeSatker: true,
           noTelpon: true,
           tahunSetoran: true,
+          tahunLainnya: true,
           unggahDokumen: true,
           user: {
             select: {
@@ -38,6 +39,7 @@ async function findMonitoringPenerbitanNotaById (id) {
           kodeSatker: true,
           noTelpon: true,
           tahunSetoran: true,
+          tahunLainnya: true,
           unggahDokumen: true,
           user: {
             select: {

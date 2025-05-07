@@ -6,7 +6,6 @@ const {
 } = require('./monitoringKoreksiPenerimaan.repository')
 
 async function getAllMonitoringKoreksiPenerimaan () {
-  console.log('Data dari DB (Service):', data)
   return await findMonitoringKoreksiPenerimaan()
 }
 

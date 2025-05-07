@@ -42,8 +42,13 @@ async function markAsRead (notificationId) {
   })
 }
 
+async function deleteMessage () {
+  return await prisma.notification.deleteMany({})
+}
+
 module.exports = {
   createNotification,
   getNotificationsByUser,
-  markAsRead
+  markAsRead,
+  deleteMessage
 }

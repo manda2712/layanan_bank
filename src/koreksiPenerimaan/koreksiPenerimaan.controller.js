@@ -107,6 +107,7 @@ router.get('/:id', async (req, res) => {
       )
     res.status(200).send(koreksiPenerimaan)
   } catch (error) {
+    console.log('gagal mengambil data', error)
     res.status(400).send(error.message)
   }
 })

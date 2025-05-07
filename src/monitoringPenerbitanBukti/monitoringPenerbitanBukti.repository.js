@@ -13,6 +13,7 @@ async function findMonitoringPenerbitanBukti () {
           kodeSatker: true,
           noTelpon: true,
           alasanRetur: true,
+          alasanLainnya: true,
           unggah_dokumen: true,
           user: {
             // Pastikan ada relasi ke `user`
@@ -40,6 +41,7 @@ async function findMonitoringPenerbitanBuktiById (id) {
           kodeSatker: true,
           noTelpon: true,
           alasanRetur: true,
+          alasanLainnya: true,
           unggah_dokumen: true,
           user: {
             // Pastikan ada relasi ke `user`

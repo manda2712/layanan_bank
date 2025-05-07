@@ -12,6 +12,7 @@ async function findMonitoringReturSp2d () {
           kodeSatker: true,
           noTelpon: true,
           alasanRetur: true,
+          alasanLainnya:true,
           unggah_dokumen: true,
           user: {
             select: {
@@ -41,6 +42,7 @@ async function findMonitoringReturSp2dById (id) {
           kodeSatker: true,
           noTelpon: true,
           alasanRetur: true,
+          alasanLainnya: true,
           unggah_dokumen: true,
           user: {
             select: {

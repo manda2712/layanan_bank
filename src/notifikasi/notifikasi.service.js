@@ -1,7 +1,8 @@
 const {
   createNotification,
   getNotificationsByUser,
-  markAsRead
+  markAsRead,
+  deleteMessage
 } = require('./notifikasi.repository')
 
 async function sendDokumenNotification (
@@ -34,9 +35,14 @@ async function setAllNotificationsRead (userId) {
   })
 }
 
+async function removeAllMesaage () {
+  return await deleteMessage()
+}
+
 module.exports = {
   sendDokumenNotification,
   getUserNotifications,
   setNotificationRead,
-  setAllNotificationsRead // Menambahkan fungsi untuk menandai semua sebagai sudah dibaca
+  setAllNotificationsRead,
+  removeAllMesaage
 }

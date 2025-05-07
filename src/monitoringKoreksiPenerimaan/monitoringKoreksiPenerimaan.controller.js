@@ -9,6 +9,7 @@ router.get('/', async (req, res) => {
       await monitoringKoreksiPenerimaanService.getAllMonitoringKoreksiPenerimaan()
     res.send(monitoringList)
   } catch (error) {
+    console.log('gagal mengambil data', error)
     res.status(500).send(error.message)
   }
 })
@@ -35,12 +36,10 @@ router.patch('/:id', adminAuthorize, async (req, res) => {
         monitoringId,
         monitoringData
       )
-    res
-      .status(200)
-      .json({
-        updatedMonitoring,
-        message: 'Monitoring koreksi Penerimaan Berhasil Diubah'
-      })
+    res.status(200).json({
+      updatedMonitoring,
+      message: 'Monitoring koreksi Penerimaan Berhasil Diubah'
+    })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }

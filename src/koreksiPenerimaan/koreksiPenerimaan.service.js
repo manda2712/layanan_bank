@@ -41,7 +41,7 @@ async function createKoreksiPenerimaan (dataKoreksi, userId) {
         userId: admin.id,
         message: notifMessage,
         monitoringId: newKoreksiPenerimaan.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'pengembalianPnbp' // isi sesuai kebutuhan
+        monitoringType: 'koreksiPenerimaan' // isi sesuai kebutuhan
       })
     }
 

@@ -36,4 +36,14 @@ router.patch('/readall/:userId', async (req, res) => {
   }
 })
 
+router.delete('/deleteall', async (req, res) => {
+  try {
+    await notificationService.removeAllMesaage()
+    res.json({ message: 'Semua notifikasi berhasil dihapus.' })
+  } catch (error) {
+    console.error('Error deleteAllNotif:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 module.exports = router
