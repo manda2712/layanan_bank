@@ -57,8 +57,26 @@ async function updatePengembalianPfkById (id, dataPfk) {
     ? pengembalianPfk.monitoring.some(m => m.status === 'DITOLAK')
     : false
 
+  if (isRejected && !dataPfk.unggahDokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakan.')
+  }
+
   try {
+    if (dataPfk.unggahDokumen && !dataPfk.unggahDokumen.startsWith('http')) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
     const updatePengembalianPfk = await editPengembalianPfk(id, dataPfk)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatePengembalianPfk.kodeSatker} telah mengupdate dokumen Pengembalian PFK.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatePengembalianPfk.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'PengembalianPfk' // isi sesuai kebutuhan
+      })
+    }
     return updatePengembalianPfk
   } catch (error) {
     console.error('Error saat update PFK:', error)

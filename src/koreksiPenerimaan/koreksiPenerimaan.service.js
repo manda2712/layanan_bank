@@ -86,7 +86,24 @@ async function editKoreksiPenerimaanById (id, dataKoreksi) {
   }
 
   try {
+    if (
+      dataKoreksi.unggahDokumen &&
+      !dataKoreksi.unggahDokumen.startWith('http')
+    ) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid')
+    }
     const updateKoreksiPenerimaan = await editKoreksiPenerimaan(id, dataKoreksi)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updateKoreksiPenerimaan.kodeSatker} telah mengupdate dokumen Koreksi Penerimaan Negara Atas Setoran Satuan Kerja.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updateKoreksiPenerimaan.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'koreksiPenerimaan' // isi sesuai kebutuhan
+      })
+    }
     return updateKoreksiPenerimaan
   } catch (error) {
     console.error('Error saat update Koreksi Penerimaan:', error)

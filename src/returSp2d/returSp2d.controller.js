@@ -1,28 +1,15 @@
 const express = require('express')
 const router = express.Router()
 const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
+const cloudinary = require('../config/cloudinary')
 const returService = require('./retusSp2d.services')
 const authorizeJWT = require('../middleware/authorizeJWT')
 
-const uploadDir = path.join(__dirname, '..', 'uploads')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir)
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads')) // simpan ke root/uploads
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname) // Ambil ekstensi asli
-    const uniqueSuffix = Date.now() // Gunakan timestamp agar unik
-    cb(null, `file_${uniqueSuffix}${ext}`) // Format nama file
-  }
-})
+// Gunakan memoryStorage agar file langsung diunggah ke Cloudinary
+const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
+// Route untuk membuat retur
 router.post(
   '/create',
   authorizeJWT,
@@ -36,15 +23,32 @@ router.post(
       }
 
       const { kodeSatker, noTelpon, alasanRetur, alasanLainnya } = req.body
-      const unggah_dokumen = req.file ? req.file.filename : null // Ambil path file
-      console.log('File yang diupload:', unggah_dokumen) // Pastikan ini hanya file name
+
       if (!kodeSatker || !noTelpon || !alasanRetur) {
         return res.status(400).json({ message: 'Semua field wajib diisi!' })
       }
 
-      if (!unggah_dokumen) {
+      if (!req.file) {
         return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
       }
+
+      // Fungsi untuk upload file ke Cloudinary
+      const uploadToCloudinary = buffer =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' }, // Resource type auto agar otomatis deteksi tipe file
+            (error, result) => {
+              if (error) reject(error)
+              else resolve(result)
+            }
+          )
+          stream.end(buffer)
+        })
+
+      // Upload file ke Cloudinary
+      const result = await uploadToCloudinary(req.file.buffer)
+      const fileUrl = result.secure_url
+      console.log('File yang diupload ke Cloudinary:', fileUrl)
 
       const dataRetur = await returService.createRetur(
         {
@@ -52,7 +56,7 @@ router.post(
           noTelpon,
           alasanRetur,
           alasanLainnya,
-          unggah_dokumen
+          unggah_dokumen: fileUrl
         },
         req.userId
       )
@@ -67,25 +71,28 @@ router.post(
   }
 )
 
+// Route untuk mengambil semua retur
 router.get('/', async (req, res) => {
   try {
-    const user = await returService.getAllRetur()
-    res.send(user)
+    const returSp2d = await returService.findRetur()
+    res.status(200).json(returSp2d)
   } catch (error) {
     res.status(500).send(error.message)
   }
 })
 
+// Route untuk mengambil retur berdasarkan ID
 router.get('/:id', async (req, res) => {
   try {
     const returId = parseInt(req.params.id)
     const dataRetur = await returService.getAllReturById(returId)
-    res.status(200).send(dataRetur)
+    res.status(200).json(dataRetur)
   } catch (error) {
     res.status(400).send(error.message)
   }
 })
 
+// Route untuk update retur
 router.patch(
   '/:id',
   authorizeJWT,
@@ -97,33 +104,46 @@ router.patch(
 
       const returSp2d = await returService.getAllReturById(returId)
 
-      // ✅ Validasi jika returSp2d atau monitoring tidak tersedia
       const isRejected = Array.isArray(returSp2d?.monitoring)
-        ? returSp2d.monitoring.some(
-            monitoring => monitoring.status === 'DITOLAK'
-          )
+        ? returSp2d.monitoring.some(m => m.status === 'DITOLAK')
         : false
 
-      if (isRejected && !req.file) {
+      let unggah_dokumen = null
+
+      if (req.file) {
+        // Fungsi upload ke Cloudinary dari buffer
+        const uploadToCloudinary = buffer =>
+          new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { resource_type: 'auto' },
+              (error, result) => {
+                if (error) reject(error)
+                else resolve(result)
+              }
+            )
+            stream.end(buffer)
+          })
+
+        // Upload dokumen baru ke Cloudinary
+        const cloudinaryRes = await uploadToCloudinary(req.file.buffer)
+        unggah_dokumen = cloudinaryRes.secure_url
+      }
+
+      if (isRejected && !unggah_dokumen) {
         return res
           .status(400)
           .json({ message: 'Dokumen baru harus diunggah setelah penolakan.' })
       }
 
-      const unggah_dokumen = req.file ? req.file.filename : null // Ambil path file
-
       if (unggah_dokumen) {
         dataRetur.unggah_dokumen = unggah_dokumen
       }
 
-      const updateRetur = await returService.editReturById(returId, {
-        ...dataRetur,
-        unggah_dokumen
-      })
+      const updatedRetur = await returService.editReturById(returId, dataRetur)
 
       res
         .status(200)
-        .json({ updateRetur, message: 'Retur SP2D berhasil diubah' })
+        .json({ updatedRetur, message: 'Retur SP2D berhasil diubah' })
     } catch (error) {
       console.error('Error saat update retur:', error)
       res.status(400).json({ error: error.message })
@@ -131,11 +151,12 @@ router.patch(
   }
 )
 
+// Route untuk menghapus retur
 router.delete('/:id', async (req, res) => {
   try {
     const returId = req.params.id
-    await returService.deleteReturById(returId)
-    res.status(200).json({ massage: 'Pengajuan Retur SP2D berhasil dihapus' })
+    await returService.deleteDataRetur(returId)
+    res.status(200).json({ message: 'Pengajuan Retur SP2D berhasil dihapus' })
   } catch (error) {
     res.status(400).send(error.message)
   }

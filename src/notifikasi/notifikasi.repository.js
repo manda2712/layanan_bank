@@ -19,8 +19,12 @@ async function createNotification ({
 
 async function getNotificationsByUser (userId) {
   console.log('Fetching notifications for userId:', userId)
+  const userIdInt = parseInt(userId)
+  if (!userId || isNaN(userIdInt)) {
+    throw new Error('Invalid userId')
+  }
   const notif = await prisma.notification.findMany({
-    where: { userId },
+    where: { userId: parseInt(userId) },
     select: {
       id: true,
       message: true,

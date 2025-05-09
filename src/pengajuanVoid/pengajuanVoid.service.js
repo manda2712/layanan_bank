@@ -62,7 +62,21 @@ async function editPengajuanVoidById (id, dataVoid) {
   }
 
   try {
+    if (dataVoid.unggahDokumen && !dataVoid.unggahDokumen.startsWith('http')) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
     const updatePengajuanVoid = await editPengajuanVoid(id, dataVoid)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatePengajuanVoid.kodeSatker} telah mengupdate dokumen Pengajuan Void.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatePengajuanVoid.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'PengajuanVoid' // isi sesuai kebutuhan
+      })
+    }
     return updatePengajuanVoid
   } catch (error) {
     console.error('Error saat update pengajuan Void:', error)

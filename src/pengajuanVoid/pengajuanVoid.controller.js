@@ -6,22 +6,9 @@ const path = require('path')
 const fs = require('fs')
 const authorizeJWT = require('../middleware/authorizeJWT')
 const adminAuthorize = require('../middleware/adminAuthorizeJWT')
+const cloudinary = require('cloudinary').v2
 
-const uploadDir = path.join(__dirname, '..', 'uploads')
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir)
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '..', 'uploads')) // simpan ke root/uploads
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname) // Ambil ekstensi asli
-    const uniqueSuffix = Date.now() // Gunakan timestamp agar unik
-    cb(null, `file_${uniqueSuffix}${ext}`) // Format nama file
-  }
-})
+const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
 router.post(
@@ -42,15 +29,29 @@ router.post(
         return res.status(400).json({ message: 'Semua field wajib diisi!' })
       }
 
-      if (!unggahDokumen) {
+      if (!req.file) {
         return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
       }
+
+      const uploadToCloudinary = buffer =>
+        new Promise((resolve, rejects) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (error) rejects(error)
+              else resolve(result)
+            }
+          )
+          stream.end(buffer)
+        })
+      const result = await uploadToCloudinary(req.file.buffer)
+      const fileUrl = result.secure_url
       const dataVoid = await pengajuanVoidService.creatPengajuanVoid(
         {
           kodeSatker,
           noTelpon,
           alasanVoid,
-          unggahDokumen
+          unggahDokumen: fileUrl
         },
         req.userId
       )
@@ -104,13 +105,32 @@ router.patch(
           )
         : false
 
+      let unggahDokumen = null
+
+      if (req.file) {
+        // Fungsi upload ke Cloudinary dari buffer
+        const uploadToCloudinary = buffer =>
+          new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { resource_type: 'auto' },
+              (error, result) => {
+                if (error) reject(error)
+                else resolve(result)
+              }
+            )
+            stream.end(buffer)
+          })
+
+        // Upload dokumen baru ke Cloudinary
+        const cloudinaryRes = await uploadToCloudinary(req.file.buffer)
+        unggahDokumen = cloudinaryRes.secure_url
+      }
+
       if (isRejected && !req.file) {
         return res
           .status(400)
           .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
       }
-
-      const unggahDokumen = req.file ? req.file.filename : null // Ambil path file
 
       if (unggahDokumen) {
         dataVoid.unggahDokumen = unggahDokumen

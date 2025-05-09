@@ -73,7 +73,21 @@ async function editPenerbitanNotaById (id, dataNota) {
     throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
   }
   try {
+    if (dataNota.unggahDokumen && !dataNota.unggahDokumen.startsWith('http')) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
     const updatePenerbitanNota = await editPenerbitanNota(id, dataNota)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatePengembalianPnbp.kodeSatker} telah mengupdate dokumen Pengajuan Penerbitan Nota Konfirmasi atas Penerimaan Negara .`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatePenerbitanNota.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'PenerbitanNota' // isi sesuai kebutuhan
+      })
+    }
     return updatePenerbitanNota
   } catch (error) {
     console.error('Error saat update Penerbitan Nota:', error)

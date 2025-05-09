@@ -73,7 +73,24 @@ async function editPenerbitanBuktiById (id, dataBukti) {
   }
 
   try {
+    if (
+      dataBukti.unggah_dokumen &&
+      !dataBukti.unggah_dokumen.startsWith('http')
+    ) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
     const updateBukti = await editPenerbitanBukti(id, dataBukti)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updateBukti.kodeSatker} telah mengupdate dokumen Penerbitan Bukti Penerimaan Negara.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updateBukti.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'penerbitanBukti' // isi sesuai kebutuhan
+      })
+    }
     return updateBukti
   } catch (error) {
     console.error('Error saat update retur:', error)

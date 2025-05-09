@@ -57,8 +57,27 @@ async function editPengembalianPnbpById (id, dataPnbp) {
     ? pengembalianPnBp.monitoring.some(m => m.status === 'DITOLAK')
     : false
 
+  if (isRejected && !dataPnbp.unggahDokumen) {
+    throw new Error('Dokumen baru harus diunggah setelah penolakan.')
+  }
+
   try {
+    if (dataPnbp.unggahDokumen && !dataPnbp.unggahDokumen.startsWith('http')) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
     const updatePengembalianPnbp = await editPengembalianPnbp(id, dataPnbp)
+    // 🔔 Kirim notifikasi ke semua admin setelah edit berhasil
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatePengembalianPnbp.kodeSatker} telah mengupdate dokumen Pengembalian PNBP.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatePengembalianPnbp.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'PengembalianPnBp' // isi sesuai kebutuhan
+      })
+    }
     return updatePengembalianPnbp
   } catch (error) {
     console.error('Error saat update PNBP:', error)

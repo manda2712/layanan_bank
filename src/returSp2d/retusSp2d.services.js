@@ -61,16 +61,10 @@ async function getAllReturById (id) {
 async function editReturById (id, dataRetur) {
   const returSp2d = await getAllReturById(id)
 
-  // Cek jika returSp2d tidak ditemukan
-  if (!returSp2d) {
-    throw new Error(`Retur dengan ID ${id} tidak ditemukan!`)
-  }
-
   const isRejected = Array.isArray(returSp2d.monitoring)
     ? returSp2d.monitoring.some(m => m.status === 'DITOLAK')
     : false
 
-  // Kalau dokumen ditolak, wajib unggah ulang
   if (isRejected && !dataRetur.unggah_dokumen) {
     throw new Error('Dokumen baru harus diunggah setelah penolakan.')
   }
@@ -78,14 +72,31 @@ async function editReturById (id, dataRetur) {
   if (dataRetur.alasanRetur === 'LAINNYA' && !dataRetur.alasanLainnya) {
     throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
   }
-
   try {
-    // Panggil fungsi editRetur untuk update
-    const updateRetur = await editRetur(id, dataRetur)
-    return updateRetur
+    // Periksa jika unggah_dokumen bukan URL (misalnya filename saja)
+    if (
+      dataRetur.unggah_dokumen &&
+      !dataRetur.unggah_dokumen.startsWith('http')
+    ) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    }
+    const updatedRetur = await editRetur(id, dataRetur)
+    // 🔔 Kirim notifikasi ke semua admin setelah edit berhasil
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatedRetur.kodeSatker} telah mengupdate dokumen Penyelesaian Retur.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatedRetur.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'returSp2d' // isi sesuai kebutuhan
+      })
+    }
+    return updatedRetur
   } catch (error) {
     console.error('Error saat update retur:', error)
-    throw error
+    throw new Error('Gagal mengupdate retur SP2D: ' + error.message)
   }
 }
 

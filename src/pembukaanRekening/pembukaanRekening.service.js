@@ -63,10 +63,28 @@ async function editPembukaanRekeningById (id, dataRekening) {
   }
 
   try {
+    if (
+      dataRekening.unggahDokumen &&
+      !dataRekening.unggahDokumen.startWith('http')
+    ) {
+      throw new Error('Unggah dokumen berupa URL yang valid.')
+    }
     const updatePembukaanRekening = await editPembukaanRekening(
       id,
       dataRekening
     )
+
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updatePembukaanRekening.kodeSatker} telah mengupdate dokumen Pengembalian PNBP.`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updatePembukaanRekening.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'pembukaanRekening' // isi sesuai kebutuhan
+      })
+    }
     return updatePembukaanRekening
   } catch (error) {
     console.error('Error saat update Pembukaan Rekening:', error)

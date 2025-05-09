@@ -63,7 +63,24 @@ async function updateLaporanRekeningById (id, dataLaporan) {
   }
 
   try {
+    if (
+      dataLaporan.unggahDokumen &&
+      !dataLaporan.unggahDokumen.startWith('http')
+    ) {
+      throw new Error('Unggah dokumen harus berupa URL yang valid')
+    }
     const updateLaporanRekening = await editLaporanRekening(id, dataLaporan)
+    const adminUsers = await getAllAdminUsers()
+    const notifMessage = `Kode Satker ${updateLaporanRekening.kodeSatker} telah mengupdate dokumen Permohonan Persetujuan Pembukaan Rekening Satker`
+
+    for (const admin of adminUsers) {
+      await createNotification({
+        userId: admin.id,
+        message: notifMessage,
+        monitoringId: updateLaporanRekening.monitoring?.id || null, // pastikan ini sesuai schema
+        monitoringType: 'laporanRekening' // isi sesuai kebutuhan
+      })
+    }
     return updateLaporanRekening
   } catch (error) {
     console.error('Error saat update Laporan Rekening:', error)
