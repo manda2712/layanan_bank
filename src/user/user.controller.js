@@ -17,6 +17,7 @@ router.post('/', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
+    console.log('req.params.id:', req.params.id) // debug
     const user = await userService.getAllUser()
     res.send(user)
   } catch (error) {
@@ -26,6 +27,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    console.log('req.params.id:', req.params.id) // debug
     const userId = parseInt(req.params.id)
     const user = await userService.getUserById(userId)
     res.send(user)

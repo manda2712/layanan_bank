@@ -52,11 +52,8 @@ async function findAllAdminUsers () {
 
 async function editUser (id, user) {
   const updateUser = await prisma.user.update({
-    where: {
-      id: parseInt(id)
-    },
+    where: { id: parsedId },
     data: {
-      id: user.id,
       namaLengkap: user.namaLengkap,
       email: user.email,
       noTelepon: user.noTelepon,
