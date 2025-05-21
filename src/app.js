@@ -1,7 +1,7 @@
 const express = require('express')
 const app = express()
 const path = require('path')
-const port = 3000
+// const port = 3000
 const fs = require('fs')
 const cors = require('cors')
 app.use(express.json())
@@ -18,9 +18,9 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+// app.listen(port, () => {
+//   console.log(`Example app listening on port ${port}`)
+// })
 
 //userAuth
 const userAuthController = require('./auth/userAuth.controller')
@@ -98,3 +98,5 @@ app.use('/api/monitoringPfk', monitoringPengembalianPfkController)
 
 const notificationController = require('./notifikasi/notifikasi.controller')
 app.use('/notifikasi', notificationController)
+
+export default app
