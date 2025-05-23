@@ -1,11 +1,13 @@
 const express = require('express')
 const app = express()
 const path = require('path')
+const dotenv = require('dotenv')
 const port = 3000
 const fs = require('fs')
 const cors = require('cors')
 app.use(express.json())
 app.use(cors())
+dotenv.config()
 
 // Setup static file serving
 const uploadDir = path.join(__dirname, 'uploads') // kalau app.js ada di root project
