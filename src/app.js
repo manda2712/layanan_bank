@@ -99,6 +99,6 @@ const monitoringPengembalianPfkController = require('./monitoringPengembalianPfk
 app.use('/api/monitoringPfk', monitoringPengembalianPfkController)
 
 const notificationController = require('./notifikasi/notifikasi.controller')
-app.use('/notifikasi', notificationController)
+app.use('api/notifikasi', notificationController)
 
 // export default app
