@@ -40,6 +40,8 @@ model user {
   laporanRekening             laporanRekening[]
   pengembalianPfk             pengembalianPfk[]
   Notification                Notification[]
+  satker                      Satker?                       @relation(fields: [satkerId], references: [id])
+  satkerId                    Int?
 }
 
 enum Role {
@@ -49,16 +51,18 @@ enum Role {
 
 model returSp2d {
   id             Int                   @id @default(autoincrement())
-  kodeSatker     String
   userId         Int
+  satkerId       Int
   noTelpon       String
   alasanRetur    Retur
   alasanLainnya  String?
   unggah_dokumen String
+  extractedText  String?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
   monitoring     monitoringReturSp2d[]
   user           user                  @relation(fields: [userId], references: [id])
+  satker         Satker                @relation(fields: [satkerId], references: [id])
 }
 
 enum Retur {
@@ -72,17 +76,18 @@ model monitoringReturSp2d {
   id          Int              @id @default(autoincrement())
   returSp2dId Int
   userId      Int
+  satkerId    Int
   catatan     String?
   status      StatusMonitoring
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  returSp2d   returSp2d        @relation(fields: [returSp2dId], references: [id], onDelete: Cascade)
+  returSp2d   returSp2d        @relation(fields: [returSp2dId], references: [id])
   user        user             @relation(fields: [userId], references: [id])
+  satker      Satker           @relation(fields: [satkerId], references: [id])
 }
 
 model penerbitanBukti {
   id             Int                         @id @default(autoincrement())
-  kodeSatker     String
   noTelpon       String
   alasanRetur    Pengajuan
   alasanLainnya  String?
@@ -90,6 +95,7 @@ model penerbitanBukti {
   monitoring     monitoringPenerbitanBukti[]
   user           user                        @relation(fields: [userId], references: [id])
   userId         Int
+  satkerId       Int
 }
 
 enum Pengajuan {
@@ -103,15 +109,16 @@ model monitoringPenerbitanBukti {
   id                Int              @id @default(autoincrement())
   penerbitanBuktiId Int
   userId            Int
+  satkerId          Int
   status            StatusMonitoring
   catatan           String?
   penerbitanBukti   penerbitanBukti  @relation(fields: [penerbitanBuktiId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
+  satker            Satker           @relation(fields: [satkerId], references: [id])
 }
 
 model penerbitanNota {
   id            Int                        @id @default(autoincrement())
-  kodeSatker    String
   noTelpon      String
   tahunSetoran  Tahun
   tahunLainnya  String?
@@ -119,6 +126,8 @@ model penerbitanNota {
   monitoring    monitoringPenerbitanNota[]
   user          user                       @relation(fields: [userId], references: [id])
   userId        Int
+  satkerId      Int
+  satker        Satker                     @relation(fields: [satkerId], references: [id])
 }
 
 enum Tahun {
@@ -135,17 +144,20 @@ model monitoringPenerbitanNota {
   penerbitanNota   penerbitanNota   @relation(fields: [penerbitanNotaId], references: [id], onDelete: Cascade)
   user             user             @relation(fields: [userId], references: [id])
   userId           Int
+  satker           Satker           @relation(fields: [satkerId], references: [id])
+  satkerId         Int
 }
 
 model pengembalianPnbp {
   id              Int                          @id @default(autoincrement())
   pihakMengajukan PihakPengajuan
-  kodeSatker      String
   noTelpon        String
   unggahDokumen   String
   monitoring      monitoringPengembalianPnbp[]
   user            user                         @relation(fields: [userId], references: [id])
   userId          Int
+  satkerId        Int
+  satker          Satker                       @relation(fields: [satkerId], references: [id])
 }
 
 model monitoringPengembalianPnbp {
@@ -156,11 +168,12 @@ model monitoringPengembalianPnbp {
   pengembalianPnbp   pengembalianPnbp @relation(fields: [pengembalianPnbpId], references: [id], onDelete: Cascade)
   user               user             @relation(fields: [userId], references: [id])
   userId             Int
+  satker             Satker           @relation(fields: [satkerId], references: [id])
+  satkerId           Int
 }
 
 model koreksiPenerimaan {
   id            Int                           @id @default(autoincrement())
-  kodeSatker    String
   noTelpon      String
   tahunSetoran  Tahun
   tahunLainnya  String?
@@ -168,6 +181,8 @@ model koreksiPenerimaan {
   monitoring    monitoringKoreksiPenerimaan[]
   user          user                          @relation(fields: [userId], references: [id])
   userId        Int
+  satkerId      Int
+  satker        Satker                        @relation(fields: [satkerId], references: [id])
 }
 
 model monitoringKoreksiPenerimaan {
@@ -178,6 +193,8 @@ model monitoringKoreksiPenerimaan {
   koreksiPenerimaan   koreksiPenerimaan @relation(fields: [koreksiPenerimaanId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])
   userId              Int
+  satkerId            Int
+  satker              Satker            @relation(fields: [satkerId], references: [id])
 }
 
 model Notification {
@@ -195,13 +212,14 @@ model Notification {
 
 model pengajuanVoid {
   id            Int                       @id @default(autoincrement())
-  kodeSatker    String
   noTelpon      String
   alasanVoid    String
   unggahDokumen String
   monitoring    monitoringPengajuanVoid[]
   user          user                      @relation(fields: [userId], references: [id])
   userId        Int
+  satkerId      Int
+  satker        Satker                    @relation(fields: [satkerId], references: [id])
 }
 
 model monitoringPengajuanVoid {
@@ -212,17 +230,20 @@ model monitoringPengajuanVoid {
   pengajuanVoid   pengajuanVoid    @relation(fields: [pengajuanVoidId], references: [id], onDelete: Cascade)
   user            user             @relation(fields: [userId], references: [id])
   userId          Int
+  satkerId        Int
+  satker          Satker           @relation(fields: [satkerId], references: [id])
 }
 
 model pembukaanRekening {
   id            Int                           @id @default(autoincrement())
-  kodeSatker    String
   noTelpon      String
   jenisRekening String
   unggahDokumen String
   monitoring    monitoringPembukaanRekening[]
   user          user                          @relation(fields: [userId], references: [id])
   userId        Int
+  satker        Satker                        @relation(fields: [satkerId], references: [id])
+  satkerId      Int
 }
 
 model monitoringPembukaanRekening {
@@ -233,17 +254,20 @@ model monitoringPembukaanRekening {
   pembukaanRekening   pembukaanRekening @relation(fields: [pembukaanRekeningId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])
   userId              Int
+  satker              Satker            @relation(fields: [satkerId], references: [id])
+  satkerId            Int
 }
 
 model laporanRekening {
   id            Int                         @id @default(autoincrement())
-  kodeSatker    String
   noTelpon      String
   jenisLaporan  Laporan
   unggahDokumen String
   monitoring    monitoringLaporanRekening[]
   user          user                        @relation(fields: [userId], references: [id])
   userId        Int
+  satker        Satker                      @relation(fields: [satkerId], references: [id])
+  satkerId      Int
 }
 
 enum Laporan {
@@ -259,6 +283,8 @@ model monitoringLaporanRekening {
   laporanRekening   laporanRekening  @relation(fields: [laporanRekeningId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
   userId            Int
+  satker            Satker           @relation(fields: [satkerId], references: [id])
+  satkerId          Int
 }
 
 model pengembalianPfk {
@@ -270,6 +296,8 @@ model pengembalianPfk {
   monitoring      monitoringPengembalianPfk[]
   user            user                        @relation(fields: [userId], references: [id])
   userId          Int
+  satker          Satker                      @relation(fields: [satkerId], references: [id])
+  satkerId        Int
 }
 
 enum PihakPengajuan {
@@ -285,10 +313,37 @@ model monitoringPengembalianPfk {
   pengembalianPfk   pengembalianPfk  @relation(fields: [pengembalianPfkId], references: [id], onDelete: Cascade)
   userId            Int
   user              user             @relation(fields: [userId], references: [id])
+  satker            Satker           @relation(fields: [satkerId], references: [id])
+  satkerId          Int
+}
+
+model Satker {
+  id                           Int                           @id @default(autoincrement())
+  namaInstansi                 String
+  kodeSatker                   String
+  users                        user[]
+  returSp2Ds                   returSp2d[]
+  monitoringReturSp2Ds         monitoringReturSp2d[]
+  monitoringPenerbitanBuktis   monitoringPenerbitanBukti[]
+  penerbitanNotas              penerbitanNota[]
+  monitoringPenerbitanNotas    monitoringPenerbitanNota[]
+  pengembalianPnbps            pengembalianPnbp[]
+  monitoringPengembalianPnbps  monitoringPengembalianPnbp[]
+  koreksiPenerimaans           koreksiPenerimaan[]
+  monitoringKoreksiPenerimaans monitoringKoreksiPenerimaan[]
+  pengajuanVoids               pengajuanVoid[]
+  monitoringPengajuanVoids     monitoringPengajuanVoid[]
+  pembukaanRekenings           pembukaanRekening[]
+  monitoringPembukaanRekenings monitoringPembukaanRekening[]
+  laporanRekenings             laporanRekening[]
+  monitoringLaporanRekenings   monitoringLaporanRekening[]
+  pengembalianPfks             pengembalianPfk[]
+  monitoringPengembalianPfks   monitoringPengembalianPfk[]
 }
 
 enum StatusMonitoring {
   DIPROSES
   SELESAI
   DITOLAK
+  MENUNGGU_VALIDASI_ADMIN
 }

@@ -7,6 +7,7 @@ async function insertUser (user) {
       email: user.email,
       noTelepon: user.noTelepon,
       password: user.password,
+      satkerId: user.satkerId,
       role: user.role
     }
   })
@@ -21,6 +22,9 @@ async function findUser () {
       email: true,
       noTelepon: true,
       role: true
+    },
+    include: {
+      satker: true
     }
   })
   return user
