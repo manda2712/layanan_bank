@@ -2,30 +2,27 @@ const express = require('express')
 const router = express.Router()
 
 const userAuthService = require('./userAuth.services')
-// const { Role } = require('@prisma/client');
-// const { user } = require('../db');
 
 router.post('/register', async (req, res, next) => {
-  const { namaLengkap, email, noTelepon, password } = req.body
+  const { namaLengkap, email, noTelepon, password, satkerId } = req.body
   try {
     const newUser = await userAuthService.register(
       namaLengkap,
       email,
       noTelepon,
+      satkerId,
       password
     )
-    res
-      .status(201)
-      .json({
-        data: {
-          namaLengkap: newUser.namaLengkap,
-          email: newUser.email,
-          noTelepon: newUser.noTelepon,
-          role: newUser.role,
-          password
-        },
-        message: 'Registration Success'
-      })
+    res.status(201).json({
+      data: {
+        namaLengkap: newUser.namaLengkap,
+        email: newUser.email,
+        noTelepon: newUser.noTelepon,
+        role: newUser.role,
+        satkerId: newUser.satkerId
+      },
+      message: 'Registration Success'
+    })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }

@@ -9,10 +9,10 @@ async function findMonitoringReturSp2d () {
       catatan: true,
       returSp2d: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           alasanRetur: true,
-          alasanLainnya:true,
+          alasanLainnya: true,
           unggah_dokumen: true,
           user: {
             select: {
@@ -27,6 +27,32 @@ async function findMonitoringReturSp2d () {
     }
   })
   return monitoring
+}
+
+async function findMonitoringForAdmin () {
+  return await prisma.monitoringReturSp2d.findMany({
+    select: {
+      id: true,
+      returSp2dId: true,
+      status: true,
+      catatan: true,
+      rbsStatus: true,
+      rbsResult: true,
+      createdAt: true,
+      returSp2d: {
+        select: {
+          noTelpon: true,
+          alasanRetur: true,
+          alasanLainnya: true,
+          extractedText: true,
+          rbsResult: true,
+          unggah_dokumen: true,
+          user: { select: { namaLengkap: true } }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  })
 }
 
 async function findMonitoringReturSp2dById (id) {
@@ -99,5 +125,6 @@ module.exports = {
   findMonitoringReturSp2d,
   findMonitoringReturSp2dById,
   updatedMonitoringReturSp2d,
+  findMonitoringForAdmin,
   deleteMonitoringReturSp2d
 }

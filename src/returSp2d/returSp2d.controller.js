@@ -1,80 +1,50 @@
 const express = require('express')
 const router = express.Router()
 const multer = require('multer')
-const cloudinary = require('../config/cloudinary')
 const returService = require('./retusSp2d.services')
 const authorizeJWT = require('../middleware/authorizeJWT')
 
-// Gunakan memoryStorage agar file langsung diunggah ke Cloudinary
+// Memory storage untuk multer
 const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
-// Route untuk membuat retur
+// Create Retur
 router.post(
   '/create',
   authorizeJWT,
   upload.single('unggah_dokumen'),
   async (req, res) => {
     try {
-      console.log('user Id dari request:', req.userId)
+      const { noTelpon, alasanRetur, alasanLainnya, satkerId } = req.body
+      const userId = req.user?.id
+      const file = req.file
 
-      if (!req.userId) {
+      if (!userId)
         return res.status(401).json({ message: 'User Belum Terautentikasi' })
-      }
-
-      const { kodeSatker, noTelpon, alasanRetur, alasanLainnya } = req.body
-
-      if (!kodeSatker || !noTelpon || !alasanRetur) {
+      if (!noTelpon || !alasanRetur || !satkerId)
         return res.status(400).json({ message: 'Semua field wajib diisi!' })
-      }
-
-      if (!req.file) {
+      if (!file)
         return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
-      }
-
-      // Fungsi untuk upload file ke Cloudinary
-      const uploadToCloudinary = buffer =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { resource_type: 'auto' }, // Resource type auto agar otomatis deteksi tipe file
-            (error, result) => {
-              if (error) reject(error)
-              else resolve(result)
-            }
-          )
-          stream.end(buffer)
-        })
-
-      // Upload file ke Cloudinary
-      const result = await uploadToCloudinary(req.file.buffer)
-      const fileUrl = result.secure_url
-      console.log('File yang diupload ke Cloudinary:', fileUrl)
 
       const dataRetur = await returService.createRetur(
-        {
-          kodeSatker,
-          noTelpon,
-          alasanRetur,
-          alasanLainnya,
-          unggah_dokumen: fileUrl
-        },
-        req.userId
+        { noTelpon, alasanRetur, alasanLainnya, satkerId },
+        userId,
+        file
       )
 
       res
-        .status(201)
+        .status(200)
         .json({ dataRetur, message: 'Pembuatan Retur SP2D berhasil!' })
     } catch (error) {
       console.error('Error di Controller:', error)
-      res.status(400).send(error.message)
+      res.status(400).json({ error: error.message })
     }
   }
 )
-
 // Route untuk mengambil semua retur
 router.get('/', async (req, res) => {
   try {
-    const returSp2d = await returService.findRetur()
+    const returSp2d = await returService.getAllRetur()
     res.status(200).json(returSp2d)
   } catch (error) {
     res.status(500).send(error.message)

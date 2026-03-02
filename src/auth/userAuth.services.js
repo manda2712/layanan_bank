@@ -10,13 +10,14 @@ function generateToken (user) {
   )
 }
 
-async function register (namaLengkap, email, noTelepon, password) {
+async function register (namaLengkap, email, noTelepon, satkerId, password) {
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = {
       namaLengkap,
       email,
       noTelepon,
+      satkerId,
       password: hashedPassword,
       role: 'user'
     }
