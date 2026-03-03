@@ -78,6 +78,7 @@ model monitoringReturSp2d {
   userId      Int
   satkerId    Int
   catatan     String?
+  hasilKmp    String?
   status      StatusMonitoring
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt

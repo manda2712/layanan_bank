@@ -1,8 +1,10 @@
+// ocrService.js
 const axios = require('axios')
 const FormData = require('form-data')
 const fs = require('fs')
 
-async function sendToOCR (filePath) {
+async function extractTextFromPDF (filePath) {
+  // Ganti nama di sini
   const form = new FormData()
   form.append('file', fs.createReadStream(filePath))
 
@@ -10,7 +12,8 @@ async function sendToOCR (filePath) {
     headers: form.getHeaders()
   })
 
-  return response.data
+  // Pastikan return hanya teksnya saja agar konsisten dengan logika KMP kamu
+  return response.data.text
 }
 
-module.exports = { sendToOCR }
+module.exports = { extractTextFromPDF } // Ekspor dengan nama baru

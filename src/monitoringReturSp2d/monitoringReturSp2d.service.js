@@ -2,49 +2,67 @@ const {
   findMonitoringReturSp2d,
   findMonitoringReturSp2dById,
   updatedMonitoringReturSp2d,
-  deleteMonitoringReturSp2d
+  deleteMonitoringReturSp2d,
+  findMonitoringForAdmin // Pastikan ini di-import
 } = require('./monitoringReturSp2d.repository')
 
 // Format status agar lebih user-friendly
 function formatStatus (status) {
-  if (status === 'DIPROSES') return 'Menunggu Validasi Admin'
-  if (status === 'SELESAI') return 'Selesai'
-  if (status === 'DITOLAK') return 'Ditolak'
-  return status
+  const statusMap = {
+    DIPROSES: 'Menunggu Validasi Admin',
+    SELESAI: 'Selesai',
+    DITOLAK: 'Ditolak',
+    MENUNGGU_VALIDASI_ADMIN: 'Menunggu Validasi Admin'
+  }
+  return statusMap[status] || status
 }
+
+// --- UNTUK USER ---
 async function getAllMonitoringReturSp2d (user) {
+  // Gunakan fungsi repo khusus user (datanya terbatas)
   const data = await findMonitoringReturSp2d()
 
-  // Jika user → sembunyikan detail RBS
   return data
     .filter(item => item.returSp2d.userId === user.id)
     .map(item => ({
       id: item.id,
       returSp2dId: item.returSp2dId,
       status: formatStatus(item.status),
-      catatan: item.catatan,
+      catatan: item.catatan, // Ini adalah pesan manual dari Admin
+      createdAt: item.createdAt,
       returSp2d: item.returSp2d
     }))
 }
 
+// --- UNTUK ADMIN ---
 async function getAllMonitoringForAdmin () {
-  const data = await findMonitoringReturSp2d()
-  return data.map(item => ({
-    id: item.id,
-    returSp2dId: item.returSp2dId,
-    status: formatStatus(item.status),
-    catatan: item.catatan,
-    returSp2d: {
-      noTelpon: item.returSp2d.noTelpon,
+  // Gunakan fungsi repo khusus admin (ada extractedText & hasilKmp)
+  const data = await findMonitoringForAdmin()
 
-      alasanRetur: item.returSp2d.alasanRetur,
-      alasanLainnya: item.returSp2d.alasanLainnya,
-      unggah_dokumen: item.returSp2d.unggah_dokumen,
-      user: {
-        namaLengkap: item.returSp2d.user.namaLengkap
+  return data.map(item => {
+    // Parse hasilKmp dari string JSON kembali ke Object agar Admin bisa buat checklist
+    let checklistKmp = null
+    try {
+      checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+    } catch (e) {
+      console.error('Gagal parse JSON hasilKmp:', e)
+    }
+
+    return {
+      id: item.id,
+      returSp2dId: item.returSp2dId,
+      status: formatStatus(item.status),
+      statusOriginal: item.status, // Berguna untuk dropdown update status di FE
+      catatan: item.catatan, // Pesan yang dikirim admin ke user
+      checklistKmp: checklistKmp, // Hasil true/false KMP
+      createdAt: item.createdAt,
+      returSp2d: {
+        ...item.returSp2d,
+        // Admin bisa melihat Full Text hasil OCR di sini
+        extractedText: item.returSp2d.extractedText
       }
     }
-  }))
+  })
 }
 
 async function getMonitoringReturSp2dById (id) {
@@ -56,7 +74,10 @@ async function getMonitoringReturSp2dById (id) {
 }
 
 async function editMonitoringReturSp2dById (id, dataMonitoring) {
+  // Validasi keberadaan data
   await getMonitoringReturSp2dById(id)
+
+  // Update status dan catatan manual
   const updatedMonitoring = await updatedMonitoringReturSp2d(id, dataMonitoring)
   return updatedMonitoring
 }

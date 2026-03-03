@@ -21,10 +21,13 @@ async function findUser () {
       namaLengkap: true,
       email: true,
       noTelepon: true,
-      role: true
-    },
-    include: {
-      satker: true
+      role: true,
+      satker: {
+        select: {
+          namaInstansi: true,
+          kodeSatker: true
+        }
+      }
     }
   })
   return user
@@ -35,12 +38,8 @@ async function findUserById (id) {
     where: {
       id: parseInt(id)
     },
-    select: {
-      id: true,
-      namaLengkap: true,
-      email: true,
-      noTelepon: true,
-      role: true
+    include: {
+      satker: true
     }
   })
   return user

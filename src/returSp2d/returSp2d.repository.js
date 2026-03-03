@@ -1,6 +1,6 @@
 const prisma = require('../db')
 
-async function insertRetur (dataRetur, userId) {
+async function insertRetur (dataRetur, userId, satkerId) {
   if (!userId) throw new Error('User ID tidak ditemukan!')
 
   return await prisma.returSp2d.create({
@@ -17,18 +17,16 @@ async function insertRetur (dataRetur, userId) {
       },
 
       satker: {
-        connect: { id: Number(dataRetur.satkerId) }
+        connect: { id: satkerId }
       },
 
       monitoring: {
         create: {
           status: 'DIPROSES',
-          user: {
-            connect: { id: userId }
-          },
-          satker: {
-            connect: { id: Number(dataRetur.satkerId) }
-          }
+          hasilKmp: dataRetur.hasilAnalisis,
+          catatan: null,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
@@ -40,11 +38,16 @@ async function findRetur () {
   const returSp2d = await prisma.returSp2d.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       alasanRetur: true,
       alasanLainnya: true,
-      unggah_dokumen: true
+      unggah_dokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return returSp2d
@@ -55,8 +58,17 @@ async function findReturById (id) {
     where: { id: Number(id) },
     include: {
       monitoring: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
         select: {
-          status: true // ambil hanya field tertentu dari relasi monitoring
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -65,42 +77,42 @@ async function findReturById (id) {
 }
 
 async function editRetur (id, dataRetur) {
-  const returSp2d = await prisma.returSp2d.findUnique({
-    where: { id: parseInt(id) },
-    include: { monitoring: true } // Memastikan monitoring ikut di-fetch
+  // 1. Ambil data lama dulu untuk cek monitoring
+  const oldData = await prisma.returSp2d.findUnique({
+    where: { id: Number(id) },
+    include: { monitoring: true }
   })
 
-  if (!returSp2d) {
-    throw new Error('Retur tidak ditemukan!')
-  }
+  if (!oldData) throw new Error('Retur tidak ditemukan!')
 
-  // Pastikan dokumen baru diunggah
-  if (!dataRetur.unggah_dokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
-  }
-
-  // Update dokumen di returSp2d
+  // 2. Update field yang dikirim saja (Partial Update)
   const updatedRetur = await prisma.returSp2d.update({
-    where: { id: parseInt(id) },
+    where: { id: Number(id) },
     data: {
-      unggah_dokumen: dataRetur.unggah_dokumen
-    }
+      ...(dataRetur.noTelpon && { noTelpon: dataRetur.noTelpon }),
+      ...(dataRetur.alasanRetur && { alasanRetur: dataRetur.alasanRetur }),
+      ...(dataRetur.alasanLainnya !== undefined && {
+        alasanLainnya: dataRetur.alasanLainnya
+      }),
+      ...(dataRetur.unggah_dokumen && {
+        unggah_dokumen: dataRetur.unggah_dokumen
+      }),
+      ...(dataRetur.extractedText && { extractedText: dataRetur.extractedText })
+    },
+    include: { satker: true } // Supaya di Service bisa dapet kodeSatker
   })
 
-  // Update monitoring yang terakhir untuk status "DIPROSES"
-  if (returSp2d.monitoring && returSp2d.monitoring.length > 0) {
-    // Update monitoring terakhir yang ada
-    const lastMonitoring = returSp2d.monitoring[returSp2d.monitoring.length - 1]
+  // 3. Jika ada monitoring, kembalikan status ke DIPROSES
+  if (oldData.monitoring && oldData.monitoring.length > 0) {
+    const lastMonitoring = oldData.monitoring.sort((a, b) => b.id - a.id)[0]
     await prisma.monitoringReturSp2d.update({
-      where: { id: lastMonitoring.id }, // Menemukan monitoring terakhir
-      data: {
-        status: 'DIPROSES' // Menandakan status terbaru
-      }
+      where: { id: lastMonitoring.id },
+      data: { status: 'DIPROSES' }
     })
   }
+
   return updatedRetur
 }
-
 async function deleteDataRetur (id) {
   await prisma.returSp2d.delete({
     where: {

@@ -3,31 +3,25 @@ const router = express.Router()
 const multer = require('multer')
 const returService = require('./retusSp2d.services')
 const authorizeJWT = require('../middleware/authorizeJWT')
-
-// Memory storage untuk multer
 const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
-// Create Retur
 router.post(
   '/create',
   authorizeJWT,
   upload.single('unggah_dokumen'),
   async (req, res) => {
     try {
-      const { noTelpon, alasanRetur, alasanLainnya, satkerId } = req.body
+      const { noTelpon, alasanRetur, alasanLainnya } = req.body
       const userId = req.user?.id
       const file = req.file
 
       if (!userId)
         return res.status(401).json({ message: 'User Belum Terautentikasi' })
-      if (!noTelpon || !alasanRetur || !satkerId)
-        return res.status(400).json({ message: 'Semua field wajib diisi!' })
-      if (!file)
-        return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
 
+      // Panggil service (Logika OCR, KMP, dan simpan file ada di sana)
       const dataRetur = await returService.createRetur(
-        { noTelpon, alasanRetur, alasanLainnya, satkerId },
+        { noTelpon, alasanRetur, alasanLainnya },
         userId,
         file
       )
@@ -41,28 +35,28 @@ router.post(
     }
   }
 )
-// Route untuk mengambil semua retur
+
+// --- GET ALL ---
 router.get('/', async (req, res) => {
   try {
     const returSp2d = await returService.getAllRetur()
     res.status(200).json(returSp2d)
   } catch (error) {
-    res.status(500).send(error.message)
+    res.status(500).json({ error: error.message })
   }
 })
 
-// Route untuk mengambil retur berdasarkan ID
 router.get('/:id', async (req, res) => {
   try {
-    const returId = parseInt(req.params.id)
-    const dataRetur = await returService.getAllReturById(returId)
-    res.status(200).json(dataRetur)
+    const { id } = req.params
+    const data = await returService.getAllReturById(id)
+    res.send(data)
   } catch (error) {
-    res.status(400).send(error.message)
+    res.status(404).send({ error: error.message })
   }
 })
 
-// Route untuk update retur
+// --- UPDATE (PATCH) ---
 router.patch(
   '/:id',
   authorizeJWT,
@@ -71,45 +65,15 @@ router.patch(
     try {
       const returId = req.params.id
       const dataRetur = req.body
+      const file = req.file // Ambil filenya kalau ada
 
-      const returSp2d = await returService.getAllReturById(returId)
-
-      const isRejected = Array.isArray(returSp2d?.monitoring)
-        ? returSp2d.monitoring.some(m => m.status === 'DITOLAK')
-        : false
-
-      let unggah_dokumen = null
-
-      if (req.file) {
-        // Fungsi upload ke Cloudinary dari buffer
-        const uploadToCloudinary = buffer =>
-          new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { resource_type: 'auto' },
-              (error, result) => {
-                if (error) reject(error)
-                else resolve(result)
-              }
-            )
-            stream.end(buffer)
-          })
-
-        // Upload dokumen baru ke Cloudinary
-        const cloudinaryRes = await uploadToCloudinary(req.file.buffer)
-        unggah_dokumen = cloudinaryRes.secure_url
-      }
-
-      if (isRejected && !unggah_dokumen) {
-        return res
-          .status(400)
-          .json({ message: 'Dokumen baru harus diunggah setelah penolakan.' })
-      }
-
-      if (unggah_dokumen) {
-        dataRetur.unggah_dokumen = unggah_dokumen
-      }
-
-      const updatedRetur = await returService.editReturById(returId, dataRetur)
+      // Kita kirim mentah-mentah ke service, biarkan service yang urus
+      // apakah itu update status atau update dokumen
+      const updatedRetur = await returService.editReturById(
+        returId,
+        dataRetur,
+        file
+      )
 
       res
         .status(200)
@@ -121,14 +85,14 @@ router.patch(
   }
 )
 
-// Route untuk menghapus retur
+// --- DELETE ---
 router.delete('/:id', async (req, res) => {
   try {
     const returId = req.params.id
-    await returService.deleteDataRetur(returId)
+    await returService.deleteReturById(returId)
     res.status(200).json({ message: 'Pengajuan Retur SP2D berhasil dihapus' })
   } catch (error) {
-    res.status(400).send(error.message)
+    res.status(400).json({ error: error.message })
   }
 })
 
