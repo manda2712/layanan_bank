@@ -1,35 +1,50 @@
 const prisma = require('../db')
 
 async function findMonitoringPenerbitanBukti () {
-  const monitoring = await prisma.monitoringPenerbitanBukti.findMany({
+  return await prisma.monitoringPenerbitanBukti.findMany({
     select: {
       id: true,
       status: true,
       catatan: true,
-      penerbitanBuktiId: true, // ID tetap diambil sebagai referensi
+      penerbitanBuktiId: true,
       penerbitanBukti: {
-        // Perbaikan: Mengakses relasi `penerbitanBukti`, bukan `penerbitanBuktiId`
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
-          alasanRetur: true,
-          alasanLainnya: true,
           unggah_dokumen: true,
-          user: {
-            // Pastikan ada relasi ke `user`
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
-    }
+    },
+    orderBy: { id: 'desc' }
   })
-  return monitoring
+}
+
+async function findMonitoringPenerbitanBuktiAdmin () {
+  return await prisma.monitoringPenerbitanBukti.findMany({
+    select: {
+      id: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      penerbitanBuktiId: true,
+      penerbitanBukti: {
+        select: {
+          userId: true,
+          noTelpon: true,
+          unggah_dokumen: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    },
+    orderBy: { id: 'desc' }
+  })
 }
 
 async function findMonitoringPenerbitanBuktiById (id) {
-  const monitoring = await prisma.monitoringPenerbitanBukti.findUnique({
+  return await prisma.monitoringPenerbitanBukti.findUnique({
     where: { id: parseInt(id) },
     select: {
       id: true,
@@ -38,44 +53,43 @@ async function findMonitoringPenerbitanBuktiById (id) {
       catatan: true,
       penerbitanBukti: {
         select: {
-          kodeSatker: true,
           noTelpon: true,
-          alasanRetur: true,
-          alasanLainnya: true,
           unggah_dokumen: true,
-          user: {
-            // Pastikan ada relasi ke `user`
+          userId: true,
+          satker: {
             select: {
-              namaLengkap: true
+              kodeSatker: true,
+              namaInstansi: true
             }
-          }
+          },
+          user: { select: { namaLengkap: true } }
         }
       }
     }
   })
-  return monitoring
 }
 
 async function updatedMonitoringPenerbitanBukti (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringPenerbitanBukti.update({
+  const monitoringId = parseInt(id)
+  if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
+
+  return await prisma.monitoringPenerbitanBukti.update({
     where: { id: parseInt(id) },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       penerbitanBukti: {
         include: {
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deleteMonitoringPenerbitanBukti (id) {
@@ -98,5 +112,6 @@ module.exports = {
   findMonitoringPenerbitanBukti,
   findMonitoringPenerbitanBuktiById,
   updatedMonitoringPenerbitanBukti,
+  findMonitoringPenerbitanBuktiAdmin,
   deleteMonitoringPenerbitanBukti
 }

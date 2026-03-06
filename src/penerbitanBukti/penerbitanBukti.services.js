@@ -1,3 +1,5 @@
+const fs = require('fs')
+const path = require('path')
 const prisma = require('../db')
 const {
   InsertPenerbitanBukti,
@@ -9,33 +11,79 @@ const {
 
 const { getAllAdminUsers } = require('../user/user.services') // Import service user
 const { createNotification } = require('../notifikasi/notifikasi.repository')
+const ocrService = require('../service/ocrService')
+const { kmpSearch } = require('../utils/kmp')
+const patterns = require('../config/penerbitanBuktiPattern')
 
-async function createPenerbitanBukti (dataBukti, userId) {
+const uploadsPath = path.join(__dirname, '../uploads')
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath)
+
+async function createPenerbitanBukti (dataBukti, userId, file) {
   try {
-    if (!userId) {
-      throw new Error('User Id Tidak Ditemukan')
+    if (!userId) throw new Error('User Id Tidak Ditemukan')
+    if (!file) throw new Error('Dokumen wajib diunggah!')
+
+    // 1. Ambil data user secara bersih
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { satkerId: true }
+    })
+
+    if (!user || !user.satkerId) {
+      throw new Error('User belum terdaftar pada Satker mana pun.')
     }
 
-    // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
-    if (dataBukti.alasanRetur === 'LAINNYA' && !dataBukti.alasanLainnya) {
-      throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
+    // Definisikan satkerId secara eksplisit
+    const satkerId = user.satkerId
+
+    const filename = `${Date.now()}-${file.originalname}`
+    const filePath = path.join(uploadsPath, filename)
+    fs.writeFileSync(filePath, file.buffer)
+
+    dataBukti.unggah_dokumen = filename
+
+    // 2. Proses OCR berdasarkan dokumen Ditreskrimum [cite: 1, 28]
+    const extractedText = await ocrService.extractTextFromPDF(filePath)
+    dataBukti.extractedText = extractedText
+
+    const lowerText = extractedText.toLowerCase()
+    const missingPatterns = []
+    const detailValidasi = {}
+
+    // 3. Validasi KMP menggunakan pattern BPN
+    // Pastikan patterns di-import dari config yang benar (BPN, bukan Retur)
+    for (const [key, patternList] of Object.entries(patterns)) {
+      const ditemukan = patternList.some(pattern =>
+        kmpSearch(lowerText, pattern.toLowerCase())
+      )
+
+      detailValidasi[key] = ditemukan
+      if (!ditemukan) {
+        missingPatterns.push(key)
+      }
     }
 
-    const newPenerbitan = await InsertPenerbitanBukti(dataBukti, userId)
-    const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${newPenerbitan.kodeSatker} telah mengajukan dokumen Penerimaan Bukti Penerimaan Negara.`
+    // 4. Set Catatan KMP
+    const catatanKmp =
+      missingPatterns.length === 0
+        ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+        : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: newPenerbitan.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'penerbitanBukti' // isi sesuai kebutuhan
-      })
-    }
-    return newPenerbitan
+    dataBukti.catatanKmp = catatanKmp
+    dataBukti.hasilAnalisis = JSON.stringify(detailValidasi)
+
+    // 5. Simpan ke Repository (Pastikan parameter urut)
+    const newPenerbitanBukti = await InsertPenerbitanBukti(
+      dataBukti,
+      userId,
+      satkerId
+    )
+
+    return newPenerbitanBukti
   } catch (error) {
-    throw new Error('Gagal Membuat Penerbitan Bukti')
+    console.error('DEBUG ERROR:', error.message)
+    // Melempar pesan error spesifik agar muncul di log controller Anda
+    throw new Error('Gagal Membuat Penerbitan Bukti: ' + error.message)
   }
 }
 
@@ -53,31 +101,23 @@ async function getPenerbitanBuktiById (id) {
 }
 
 async function editPenerbitanBuktiById (id, dataBukti) {
-  const penerbitanBukti = await getPenerbitanBuktiById(id)
+  const existPenerbitanBukti = await getPenerbitanBuktiById(id)
 
-  if (!penerbitanBukti) {
-    throw new Error(`Penerbitan Bukti dengan ID ${id} tidak dapat ditemukan`)
-  }
-
-  const isRejected = Array.isArray(penerbitanBukti.monitoring)
-    ? penerbitanBukti.monitoring.some(m => m.status === 'DITOLAK')
-    : false
-
+  const isRejected = existPenerbitanBukti.monitoring?.some(
+    m => m.status === 'DITOLAK'
+  )
   if (isRejected && !dataBukti.unggah_dokumen) {
     throw new Error('Dokumen baru harus diunggah setelah penolakan')
   }
 
-  // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
-  if (dataBukti.alasanRetur === 'LAINNYA' && !dataBukti.alasanLainnya) {
-    throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
-  }
-
   try {
-    if (
-      dataBukti.unggah_dokumen &&
-      !dataBukti.unggah_dokumen.startsWith('http')
-    ) {
-      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    if (file) {
+      const filename = `${Date.now()}-${file.originalname}`
+      const filePath = path.join(uploadsPath, filename)
+      fs.writeFileSync(filePath, file.buffer)
+      dataBukti.unggah_dokumen = filename
+      const extractedText = await ocrService.extractTextFromPDF(filePath)
+      dataBukti.extractedText = extractedText
     }
     const updateBukti = await editPenerbitanBukti(id, dataBukti)
     const adminUsers = await getAllAdminUsers()

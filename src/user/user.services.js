@@ -10,7 +10,6 @@ const {
 
 async function createUser (newData) {
   const hashedPassword = await bcrypt.hash(newData.password, 10)
-
   newData.password = hashedPassword
   const newUser = await insertUser(newData)
   return newUser

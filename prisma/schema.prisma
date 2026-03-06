@@ -90,13 +90,13 @@ model monitoringReturSp2d {
 model penerbitanBukti {
   id             Int                         @id @default(autoincrement())
   noTelpon       String
-  alasanRetur    Pengajuan
-  alasanLainnya  String?
   unggah_dokumen String
+  extractedTexts String?
   monitoring     monitoringPenerbitanBukti[]
   user           user                        @relation(fields: [userId], references: [id])
   userId         Int
   satkerId       Int
+  satker         Satker                      @relation(fields: [satkerId], references: [id])
 }
 
 enum Pengajuan {
@@ -113,6 +113,7 @@ model monitoringPenerbitanBukti {
   satkerId          Int
   status            StatusMonitoring
   catatan           String?
+  hasilKmp          String?
   penerbitanBukti   penerbitanBukti  @relation(fields: [penerbitanBuktiId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
   satker            Satker           @relation(fields: [satkerId], references: [id])
@@ -340,6 +341,7 @@ model Satker {
   monitoringLaporanRekenings   monitoringLaporanRekening[]
   pengembalianPfks             pengembalianPfk[]
   monitoringPengembalianPfks   monitoringPengembalianPfk[]
+  penerbitanBuktis             penerbitanBukti[]
 }
 
 enum StatusMonitoring {

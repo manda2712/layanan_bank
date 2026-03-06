@@ -18,8 +18,6 @@ router.post(
 
       if (!userId)
         return res.status(401).json({ message: 'User Belum Terautentikasi' })
-
-      // Panggil service (Logika OCR, KMP, dan simpan file ada di sana)
       const dataRetur = await returService.createRetur(
         { noTelpon, alasanRetur, alasanLainnya },
         userId,
@@ -36,7 +34,6 @@ router.post(
   }
 )
 
-// --- GET ALL ---
 router.get('/', async (req, res) => {
   try {
     const returSp2d = await returService.getAllRetur()
@@ -56,7 +53,6 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-// --- UPDATE (PATCH) ---
 router.patch(
   '/:id',
   authorizeJWT,
@@ -65,10 +61,7 @@ router.patch(
     try {
       const returId = req.params.id
       const dataRetur = req.body
-      const file = req.file // Ambil filenya kalau ada
-
-      // Kita kirim mentah-mentah ke service, biarkan service yang urus
-      // apakah itu update status atau update dokumen
+      const file = req.file
       const updatedRetur = await returService.editReturById(
         returId,
         dataRetur,
@@ -85,7 +78,6 @@ router.patch(
   }
 )
 
-// --- DELETE ---
 router.delete('/:id', async (req, res) => {
   try {
     const returId = req.params.id

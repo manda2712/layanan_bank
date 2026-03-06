@@ -77,15 +77,11 @@ async function findReturById (id) {
 }
 
 async function editRetur (id, dataRetur) {
-  // 1. Ambil data lama dulu untuk cek monitoring
   const oldData = await prisma.returSp2d.findUnique({
     where: { id: Number(id) },
     include: { monitoring: true }
   })
-
   if (!oldData) throw new Error('Retur tidak ditemukan!')
-
-  // 2. Update field yang dikirim saja (Partial Update)
   const updatedRetur = await prisma.returSp2d.update({
     where: { id: Number(id) },
     data: {
@@ -99,10 +95,8 @@ async function editRetur (id, dataRetur) {
       }),
       ...(dataRetur.extractedText && { extractedText: dataRetur.extractedText })
     },
-    include: { satker: true } // Supaya di Service bisa dapet kodeSatker
+    include: { satker: true }
   })
-
-  // 3. Jika ada monitoring, kembalikan status ke DIPROSES
   if (oldData.monitoring && oldData.monitoring.length > 0) {
     const lastMonitoring = oldData.monitoring.sort((a, b) => b.id - a.id)[0]
     await prisma.monitoringReturSp2d.update({

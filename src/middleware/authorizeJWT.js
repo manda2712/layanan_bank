@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken')
 
 function authorizeJWT (req, res, next) {
   const authHeader = req.headers.authorization
-  console.log('Authorization Header:', authHeader) // Debugging
+  console.log('Authorization Header:', authHeader)
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Token tidak diberikan!' })
