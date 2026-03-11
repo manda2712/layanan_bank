@@ -64,7 +64,6 @@ async function findMonitoringReturSp2dById (id) {
           alasanLainnya: true,
           unggah_dokumen: true,
           userId: true,
-          // PERBAIKAN: kodeSatker diambil dari relasi satker
           satker: {
             select: {
               kodeSatker: true,

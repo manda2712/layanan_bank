@@ -124,6 +124,7 @@ model penerbitanNota {
   noTelpon      String
   tahunSetoran  Tahun
   tahunLainnya  String?
+  extractedText String?
   unggahDokumen String
   monitoring    monitoringPenerbitanNota[]
   user          user                       @relation(fields: [userId], references: [id])
@@ -143,6 +144,7 @@ model monitoringPenerbitanNota {
   penerbitanNotaId Int
   status           StatusMonitoring
   catatan          String?
+  hasilKmp         String?
   penerbitanNota   penerbitanNota   @relation(fields: [penerbitanNotaId], references: [id], onDelete: Cascade)
   user             user             @relation(fields: [userId], references: [id])
   userId           Int
@@ -295,6 +297,7 @@ model pengembalianPfk {
   kodeSatker      String
   noTelpon        String
   unggahDokumen   String
+  extractedText   String?
   monitoring      monitoringPengembalianPfk[]
   user            user                        @relation(fields: [userId], references: [id])
   userId          Int
@@ -312,6 +315,7 @@ model monitoringPengembalianPfk {
   pengembalianPfkId Int
   status            StatusMonitoring
   catatan           String?
+  hasilKmp          String?
   pengembalianPfk   pengembalianPfk  @relation(fields: [pengembalianPfkId], references: [id], onDelete: Cascade)
   userId            Int
   user              user             @relation(fields: [userId], references: [id])

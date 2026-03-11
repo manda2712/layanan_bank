@@ -6,42 +6,54 @@ const enumTahunMap = {
   LAINNYA: 'LAINNYA'
 }
 
-async function InsertPenerbitanNota (dataNota, userId) {
+async function InsertPenerbitanNota (dataNota, userId, satkerId) {
   const mappedTahun = enumTahunMap[dataNota.tahunSetoran]
   if (!mappedTahun) {
     throw new Error('Tahun Setoran tidak valid!')
   }
 
-  const newPenerbitanNota = await prisma.penerbitanNota.create({
+  return await prisma.penerbitanNota.create({
     data: {
-      kodeSatker: dataNota.kodeSatker,
       noTelpon: dataNota.noTelpon,
       tahunSetoran: mappedTahun, // mapping dipakai di sini
       tahunLainnya: dataNota.tahunLainnya || null,
       unggahDokumen: dataNota.unggahDokumen,
-      userId: userId,
+      extractedText: dataNota.extractedText,
+      validationResult: dataNota.validationResult,
+      user: {
+        connect: { id: userId }
+      },
+      satker: {
+        connect: { id: satkerId }
+      },
       monitoring: {
         create: {
           status: 'DIPROSES',
-          userId: userId
+          hasilKmp: dataNota.hasilAnalisis,
+          catatan: null,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
     include: { monitoring: true }
   })
-
-  return newPenerbitanNota
 }
 
 async function findPenerbitanNota () {
   const newPenerbitanNota = await prisma.penerbitanNota.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       tahunSetoran: true,
       tahunLainnya: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return newPenerbitanNota
@@ -53,7 +65,14 @@ async function findPenerbitanNotaById (id) {
     include: {
       monitoring: {
         select: {
-          status: true // ambil hanya field tertentu dari relasi monitoring
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -71,24 +90,25 @@ async function editPenerbitanNota (id, dataNota) {
     }
   })
 
-  if (!penerbitanNota) {
-    throw new Error('Penerbitan Nota tidak ditemukan')
-  }
-
-  if (!dataNota.unggahDokumen) {
-    throw new Error('Dokumen baru harus diubah setelah penolakan')
-  }
-
+  if (!penerbitanNota) throw new Error('Penerbitan Nota tidak ditemukan')
   const updatePenerbitanNota = await prisma.penerbitanNota.update({
-    where: { id: parseInt(id) },
+    where: { id: Number(id) },
     data: {
-      unggahDokumen: dataNota.unggahDokumen
-    }
+      ...(dataNota.noTelpon && { noTelpon: dataNota.noTelpon }),
+      ...(dataNota.tahunSetoran && { tahunSetoran: dataNota.tahunSetoran }),
+      ...(dataNota.tahunLainnya !== undefined && {
+        tahunLainnya: dataNota.tahunLainnya
+      }),
+      ...(dataNota.unggahDokumen && { unggahDokumen: dataNota.unggahDokumen }),
+      ...(dataNota.extractedText && { extractedText: dataNota.extractedText })
+    },
+    include: { satker: true }
   })
 
   if (penerbitanNota.monitoring && penerbitanNota.monitoring.length > 0) {
-    const lastMonitoring =
-      penerbitanNota.monitoring[penerbitanNota.monitoring.length - 1]
+    const lastMonitoring = penerbitanNota.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringPenerbitanNota.update({
       where: { id: lastMonitoring.id },
       data: {

@@ -1,23 +1,38 @@
 const prisma = require('../db')
 
-async function insertPengembalianPfk (dataPfk, userId) {
-  const newPengembalianPfk = await prisma.pengembalianPfk.create({
+async function insertPengembalianPfk (dataPfk, userId, satkerId) {
+  if (!userId) throw new Error('User ID tidak ditemukan!')
+
+  return await prisma.pengembalianPfk.create({
     data: {
       pihakMengajukan: dataPfk.pihakMengajukan,
-      kodeSatker: dataPfk.kodeSatker,
       noTelpon: dataPfk.noTelpon,
       unggahDokumen: dataPfk.unggahDokumen,
-      userId: userId,
+      extractedText: dataPfk.extractedText,
+      validationResult: dataPfk.validationResult,
+      user: {
+        connect: {
+          id: userId
+        }
+      },
+
+      satker: {
+        connect: {
+          id: satkerId
+        }
+      },
+
       monitoring: {
         create: {
           status: 'DIPROSES',
-          userId: userId
+          hasilKmp: dataPfk.hasilAnalisis,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
     include: { monitoring: true }
   })
-  return newPengembalianPfk
 }
 
 async function findPengembalianPfk () {
@@ -25,9 +40,14 @@ async function findPengembalianPfk () {
     select: {
       id: true,
       pihakMengajukan: true,
-      kodeSatker: true,
       noTelpon: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return pengembalianPfk
@@ -39,7 +59,14 @@ async function findPengembalianPfkById (id) {
     include: {
       monitoring: {
         select: {
-          status: true // ambil hanya field tertentu dari relasi monitoring
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -53,32 +80,32 @@ async function editPengembalianPfk (id, dataPfk) {
     include: { monitoring: true }
   })
 
-  if (!pengembalianPfk) {
-    throw new Error('Pengembalian PFK tidak ditemukan')
-  }
-
-  if (!dataPfk.unggahDokumen) {
-    throw new Error('Dokumen Baru harus diunggah setelah penolakan')
-  }
-
-  const updatePengembalianPfk = await prisma.pengembalianPfk.update({
-    where: { id: parseInt(id) },
+  if (!pengembalianPfk) throw new Error('Pengembalian PFK tidak ditemukan')
+  const updatedPfk = await prisma.pengembalianPfk.update({
+    where: { id: Number(id) },
     data: {
-      unggahDokumen: dataPfk.unggahDokumen
-    }
+      ...(dataPfk.noTelpon && { noTelpon: dataPfk.noTelpon }),
+      ...(dataPfk.pihakMengajukan && {
+        pihakMengajukan: dataPfk.pihakMengajukan
+      }),
+      ...(dataPfk.unggahDokumen && {
+        unggahDokumen: dataPfk.unggahDokumen
+      }),
+      ...(dataPfk.extractedText && { extractedText: dataPfk.extractedText })
+    },
+    include: { satker: true }
   })
 
   if (pengembalianPfk.monitoring && pengembalianPfk.monitoring.length > 0) {
-    const lastMonitoring =
-      pengembalianPfk.monitoring[pengembalianPfk.monitoring.length - 1]
+    const lastMonitoring = pengembalianPfk.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringPengembalianPfk.update({
       where: { id: lastMonitoring.id },
-      data: {
-        status: 'DIPROSES'
-      }
+      data: { status: 'DIPROSES' }
     })
   }
-  return updatePengembalianPfk
+  return updatedPfk
 }
 
 async function deletePengembalianPfk (id) {

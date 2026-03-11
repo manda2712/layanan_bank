@@ -1,92 +1,294 @@
+// const path = require('path')
+// const prisma = require('../db')
+// const {
+//   insertPengembalianPfk,
+//   findPengembalianPfk,
+//   findPengembalianPfkById,
+//   editPengembalianPfk
+// } = require('./pengembalianPfk.repository')
+
+// const { getAllAdminUsers } = require('../user/user.services') // Import service user
+// const { createNotification } = require('../notifikasi/notifikasi.repository')
+// const ocrService = require('../service/ocrService')
+// const { kmpSearch } = require('../utils/kmp')
+// const patterns = require('../config/penerbitanPfk')
+
+// const uploadsPath = path.join(__dirname, '../uploads')
+// if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath)
+
+// async function createPengembalianPfk (dataPfk, userId) {
+//   try {
+//     if (!userId) throw new Error('User Id Tidak Ditemukan')
+//     if (!file) throw new Error('Dokumen wajib diunggah!')
+
+//     const userData = await prisma.user.findUnique({
+//       where: { id: userId },
+//       select: { satkerId: true }
+//     })
+//     if (!userData?.satkerId) {
+//       throw new Error('User belum terdaftar di Satker manapun.')
+//     }
+//     const satkerId = userData.satkerId
+//     const filename = `${Date.now()}-${file.originalname}`
+//     const filePath = path.join(uploadsPath, filename)
+//     fs.writeFileSync(filePath, file.buffer)
+//     dataPfk.unggahDokumen = filename
+//     const extractedText = await ocrService.extractTextFromPDF(filePath)
+//     dataPfk.extractedText = extractedText
+
+//     const lowerText = extractedText.toLowerCase()
+//     const missingPatterns = []
+//     const detailValidasi = {}
+
+//     for (const [key, patternList] of Object.entries(patterns)) {
+//       const pfk = patternList.some(pattern =>
+//         kmpSearch(lowerText, pattern.toLowerCase())
+//       )
+//       detailValidasi[key] = pfk
+
+//       if (!pfk) {
+//         missingPatterns.push(key)
+//       }
+//     }
+//     const catatanKmp =
+//       missingPatterns.length === 0
+//         ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+//         : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
+
+//     dataPfk.catatanKmp = catatanKmp
+//     dataPfk.hasilAnalisis = JSON.stringify(detailValidasi)
+
+//     const newPfk = await insertPengembalianPfk(dataPfk, userId, satkerId)
+//     return newPfk
+//   } catch (error) {
+//     throw new Error('Gagal Membuat Pengembalian PFK')
+//   }
+// }
+
+// async function getAllPengembalianPfk () {
+//   const pengembalianPfk = findPengembalianPfk()
+//   return pengembalianPfk
+// }
+
+// async function getPengembalianPfkById (id) {
+//   const pengembalianPfk = findPengembalianPfkById(id)
+//   if (!pengembalianPfk) {
+//     throw new Error('Tidak Dapat Menemukan Pengembalian PFK')
+//   }
+//   return pengembalianPfk
+// }
+
+// async function updatePengembalianPfkById (id, dataPfk, file) {
+//   const existingPfk = await getAllPengembalianPfk(id)
+//   const isRejected = existingPfk.monitoring?.some(m => m.status === 'DITOLAK')
+//   if (isRejected && !file) {
+//     throw new Error(
+//       'Dokumen baru wajib diunggah karena pengajuan sebelumnya ditolak.'
+//     )
+//   }
+//   try {
+//     if (file) {
+//       const filename = `${Date.now()}-${file.originalname}`
+//       const filePath = path.join(uploadsPath, filename)
+//       fs.writeFileSync(filePath, file.buffer)
+//       dataPfk.unggahDokumen = filename
+//       const extractedText = await ocrService.extractTextFromPDF(filePath)
+//       dataPfk.extractedText = extractedText
+//     }
+
+//     const updatedPfk = await editPengembalianPfk(id, dataPfk)
+//     const adminUser = await getAllAdminUsers()
+//     const kodeSatker = updatedPfk.satker?.kodeSatker || 'Unknown'
+//     const notifMessage = `Satker ${kodeSatker} memperbarui dokumen pengembalian PFK (ID: ${id}).`
+
+//     for (const admin of adminUser) {
+//       await createNotification({
+//         userId: admin.id,
+//         message: notifMessage,
+//         monitoringId: updatedPfk.monitoring?.[0]?.id || null,
+//         monitoringType: 'pengembalianPFK'
+//       })
+//     }
+//     return updatedPfk
+//   } catch (error) {
+//     throw new Error(error.message)
+//   }
+// }
+// async function deletePengembalianPfkById (id) {
+//   await getPengembalianPfkById(id)
+//   deletePengembalianPfkById(id)
+// }
+
+// module.exports = {
+//   createPengembalianPfk,
+//   getAllPengembalianPfk,
+//   getPengembalianPfkById,
+//   updatePengembalianPfkById,
+//   deletePengembalianPfkById
+// }
+
+const path = require('path')
+const fs = require('fs') // Tambahkan import fs yang hilang
+const prisma = require('../db')
 const {
   insertPengembalianPfk,
   findPengembalianPfk,
   findPengembalianPfkById,
-  editPengembalianPfk
+  editPengembalianPfk,
+  deletePengembalianPfk // Import fungsi delete yang benar
 } = require('./pengembalianPfk.repository')
 
-const { getAllAdminUsers } = require('../user/user.services') // Import service user
+const { getAllAdminUsers } = require('../user/user.services')
 const { createNotification } = require('../notifikasi/notifikasi.repository')
+const ocrService = require('../service/ocrService')
+const { kmpSearch } = require('../utils/kmp')
 
-async function createPengembalianPfk (dataPfk, userId) {
+// Ganti import ke pattern spesifik PFK yang sudah dipisah
+const pfkPatterns = require('../config/penerbitanPfk')
+
+const uploadsPath = path.join(__dirname, '../uploads')
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true })
+
+// Tambahkan 'file' ke parameter fungsi
+async function createPengembalianPfk (dataPfk, userId, file) {
   try {
-    if (!userId) {
-      throw new Error('User Id Tidak Ditemukan')
+    if (!userId) throw new Error('User Id Tidak Ditemukan')
+    if (!file) throw new Error('Dokumen wajib diunggah!')
+
+    const userData = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { satkerId: true }
+    })
+
+    if (!userData?.satkerId) {
+      throw new Error('User belum terdaftar di Satker manapun.')
     }
 
-    const newPengembalianPfk = await insertPengembalianPfk(dataPfk, userId)
-    const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${newPengembalianPfk.kodeSatker} telah mengajukan dokumen Pengembalian PFK.`
+    const satkerId = userData.satkerId
+    const filename = `${Date.now()}-${file.originalname}`
+    const filePath = path.join(uploadsPath, filename)
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: newPengembalianPfk.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'pengembalianPfk' // isi sesuai kebutuhan
-      })
+    // Simpan file
+    fs.writeFileSync(filePath, file.buffer)
+    dataPfk.unggahDokumen = filename
+
+    // OCR Ekstraksi
+    const extractedText = await ocrService.extractTextFromPDF(filePath)
+    dataPfk.extractedText = extractedText
+    const lowerText = extractedText.toLowerCase()
+
+    // --- LOGIKA KONDISI PATTERN PFK ---
+    // Ambil pattern common + pattern spesifik berdasarkan pihakMengajukan
+    const specificKey =
+      dataPfk.pihakMengajukan === 'satuan_kerja'
+        ? 'satuan_kerja'
+        : 'pemerintah_daerah'
+    const selectedPatterns = [
+      ...pfkPatterns.common,
+      ...(pfkPatterns[specificKey] || [])
+    ]
+
+    const missingPatterns = []
+    const detailValidasi = {}
+
+    for (const pattern of selectedPatterns) {
+      const isMatch = kmpSearch(lowerText, pattern.toLowerCase())
+      detailValidasi[pattern] = isMatch
+
+      if (!isMatch) {
+        missingPatterns.push(pattern)
+      }
     }
-    return newPengembalianPfk
+    // ----------------------------------
+
+    dataPfk.hasilAnalisis = JSON.stringify(detailValidasi)
+    dataPfk.catatanKmp =
+      missingPatterns.length === 0
+        ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+        : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
+
+    const newPfk = await insertPengembalianPfk(dataPfk, userId, satkerId)
+    return newPfk
   } catch (error) {
-    throw new Error('Gagal Membuat Pengembalian PFK')
+    // Berikan pesan error asli agar lebih mudah didebug
+    throw new Error('Gagal Membuat Pengembalian PFK: ' + error.message)
   }
 }
 
 async function getAllPengembalianPfk () {
-  const pengembalianPfk = findPengembalianPfk()
-  return pengembalianPfk
+  return await findPengembalianPfk()
 }
 
 async function getPengembalianPfkById (id) {
-  const pengembalianPfk = findPengembalianPfkById(id)
-  if (!pengembalianPfk) {
-    throw new Error('Tidak Dapat Menemukan Pengembalian PFK')
-  }
-  return pengembalianPfk
+  const data = await findPengembalianPfkById(id)
+  if (!data) throw new Error('Tidak Dapat Menemukan Pengembalian PFK')
+  return data
 }
 
-async function updatePengembalianPfkById (id, dataPfk) {
-  const pengembalianPfk = await getPengembalianPfkById(id)
+async function updatePengembalianPfkById (id, dataPfk, file) {
+  const existingPfk = await getPengembalianPfkById(id)
 
-  if (!pengembalianPfk) {
-    throw new Error(`Pengembalian PFK dengan ID ${id} tidak ditemukan`)
-  }
-
-  // Proses lanjut jika pengembalianPfk ada
-  const isRejected = Array.isArray(pengembalianPfk.monitoring)
-    ? pengembalianPfk.monitoring.some(m => m.status === 'DITOLAK')
-    : false
-
-  if (isRejected && !dataPfk.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan.')
+  // Logika pengecekan status DITOLAK
+  const isRejected = existingPfk.monitoring?.some(m => m.status === 'DITOLAK')
+  if (isRejected && !file) {
+    throw new Error(
+      'Dokumen baru wajib diunggah karena pengajuan sebelumnya ditolak.'
+    )
   }
 
   try {
-    if (dataPfk.unggahDokumen && !dataPfk.unggahDokumen.startsWith('http')) {
-      throw new Error('Unggah dokumen harus berupa URL yang valid.')
+    if (file) {
+      const filename = `${Date.now()}-${file.originalname}`
+      const filePath = path.join(uploadsPath, filename)
+      fs.writeFileSync(filePath, file.buffer)
+      dataPfk.unggahDokumen = filename
+
+      const extractedText = await ocrService.extractTextFromPDF(filePath)
+      dataPfk.extractedText = extractedText
+
+      // Re-run KMP jika ada file baru (opsional tapi disarankan)
+      const specificKey =
+        dataPfk.pihakMengajukan === 'satuan_kerja'
+          ? 'satuan_kerja'
+          : 'pemerintah_daerah'
+      const selectedPatterns = [
+        ...pfkPatterns.common,
+        ...(pfkPatterns[specificKey] || [])
+      ]
+      const detailValidasi = {}
+      selectedPatterns.forEach(p => {
+        detailValidasi[p] = kmpSearch(
+          extractedText.toLowerCase(),
+          p.toLowerCase()
+        )
+      })
+      dataPfk.hasilAnalisis = JSON.stringify(detailValidasi)
     }
-    const updatePengembalianPfk = await editPengembalianPfk(id, dataPfk)
+
+    const updatedPfk = await editPengembalianPfk(id, dataPfk)
+
+    // Kirim Notifikasi ke Admin
     const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${updatePengembalianPfk.kodeSatker} telah mengupdate dokumen Pengembalian PFK.`
+    const kodeSatker = updatedPfk.satker?.kodeSatker || 'Unknown'
+    const notifMessage = `Satker ${kodeSatker} memperbarui dokumen PFK (ID: ${id}).`
 
     for (const admin of adminUsers) {
       await createNotification({
         userId: admin.id,
         message: notifMessage,
-        monitoringId: updatePengembalianPfk.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'PengembalianPfk' // isi sesuai kebutuhan
+        monitoringId: updatedPfk.monitoring?.[0]?.id || null,
+        monitoringType: 'pengembalianPFK'
       })
     }
-    return updatePengembalianPfk
+    return updatedPfk
   } catch (error) {
-    console.error('Error saat update PFK:', error)
-    throw error
+    throw new Error(error.message)
   }
 }
 
 async function deletePengembalianPfkById (id) {
-  await getPengembalianPfkById(id)
-  deletePengembalianPfkById(id)
+  await getPengembalianPfkById(id) // Pastikan data ada
+  return await deletePengembalianPfk(id) // Panggil fungsi delete dari repository
 }
 
 module.exports = {

@@ -36,14 +36,12 @@ async function getAllMonitoringForAdmin () {
   const data = await findMonitoringForAdmin()
 
   return data.map(item => {
-    // Parse hasilKmp dari string JSON kembali ke Object agar Admin bisa buat checklist
     let checklistKmp = null
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
     } catch (e) {
       console.error('Gagal parse JSON hasilKmp:', e)
     }
-
     return {
       id: item.id,
       returSp2dId: item.returSp2dId,

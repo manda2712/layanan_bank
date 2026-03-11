@@ -77,9 +77,6 @@ async function getAllReturById (id) {
   return returSp2d
 }
 
-// ==========================
-// EDIT
-// ==========================
 async function editReturById (id, dataRetur, file) {
   const existingRetur = await getAllReturById(id)
   const isRejected = existingRetur.monitoring?.some(m => m.status === 'DITOLAK')
@@ -118,9 +115,6 @@ async function editReturById (id, dataRetur, file) {
   }
 }
 
-// ==========================
-// DELETE
-// ==========================
 async function deleteReturById (id) {
   await getAllReturById(id)
   await deleteDataRetur(id)

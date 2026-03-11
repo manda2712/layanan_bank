@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringPenerbitanNota () {
-  const monitoring = await prisma.monitoringPenerbitanNota.findMany({
+  return await prisma.monitoringPenerbitanNota.findMany({
     select: {
       id: true,
       status: true,
@@ -9,21 +9,43 @@ async function findMonitoringPenerbitanNota () {
       penerbitanNotaId: true,
       penerbitanNota: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           tahunSetoran: true,
           tahunLainnya: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
-    }
+    },
+    orderBy: { id: 'desc' }
   })
-  return monitoring
+}
+
+async function findMonitoringPenerbitanNotaAdmin () {
+  return await prisma.monitoringPenerbitanNota.findMany({
+    select: {
+      id: true,
+      penerbitanNotaId: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      penerbitanNota: {
+        select: {
+          userId: true,
+          noTelpon: true,
+          tahunSetoran: true,
+          tahunLainnya: true,
+          extractedText: true,
+          unggahDokumen: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    },
+    orderBy: { id: 'desc' }
+  })
 }
 
 async function findMonitoringPenerbitanNotaById (id) {
@@ -36,16 +58,18 @@ async function findMonitoringPenerbitanNotaById (id) {
       catatan: true,
       penerbitanNota: {
         select: {
-          kodeSatker: true,
           noTelpon: true,
           tahunSetoran: true,
           tahunLainnya: true,
           unggahDokumen: true,
-          user: {
+          userId: true,
+          satker: {
             select: {
-              namaLengkap: true
+              kodeSatker: true,
+              namaInstansi: true
             }
-          }
+          },
+          user: { select: { namaLengkap: true } }
         }
       }
     }
@@ -54,35 +78,33 @@ async function findMonitoringPenerbitanNotaById (id) {
 }
 
 async function updatedMonitoringPenerbitanNota (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringPenerbitanNota.update({
-    where: { id: parseInt(id) },
+  const monitoringId = parseInt(id)
+  if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
+  return await prisma.monitoringPenerbitanNota.update({
+    where: { id: monitoringId },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       penerbitanNota: {
         include: {
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deleteMonitoringPenerbitanNota (id) {
   return await prisma.$transaction(async prisma => {
-    // Hapus monitoring dulu
     const deletedMonitoring = await prisma.monitoringPenerbitanNota.delete({
       where: { id: parseInt(id) }
     })
 
-    // Hapus returSp2d yang terkait
     await prisma.penerbitanNota.delete({
       where: { id: deletedMonitoring.penerbitanNotaId }
     })
@@ -93,6 +115,7 @@ async function deleteMonitoringPenerbitanNota (id) {
 
 module.exports = {
   findMonitoringPenerbitanNota,
+  findMonitoringPenerbitanNotaAdmin,
   findMonitoringPenerbitanNotaById,
   updatedMonitoringPenerbitanNota,
   deleteMonitoringPenerbitanNota

@@ -3,10 +3,6 @@ const router = express.Router()
 const penerbitanNotaService = require('./penerbitanNota.services')
 const authorizeJWT = require('../middleware/authorizeJWT')
 const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
-const cloudinary = require('cloudinary').v2
-
 const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
@@ -16,48 +12,23 @@ router.post(
   upload.single('unggahDokumen'),
   async (req, res) => {
     try {
-      console.log('User Id dari Request:', req.userId)
+      const { noTelpon, tahunSetoran, tahunLainnya } = req.body
+      const userId = req.user?.id
+      const file = req.file
 
-      if (!req.userId) {
+      if (!userId)
         return res.status(401).json({ message: 'User Tidak Terautentikasi' })
-      }
-
-      const { kodeSatker, noTelpon, tahunSetoran, tahunLainnya } = req.body
-
-      if (!kodeSatker || !noTelpon || !tahunSetoran) {
-        return res.status(400).json({ message: 'Semua field wajib diisi!' })
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
-      }
-
-      const uploadToCloudinary = buffer =>
-        new Promise((resolve, rejects) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { resource_type: 'auto' },
-            (error, result) => {
-              if (error) rejects(error)
-              else resolve(result)
-            }
-          )
-          stream.end(buffer)
-        })
-      const result = await uploadToCloudinary(req.file.buffer)
-      const fileUrl = result.secure_url
-
       const dataNota = await penerbitanNotaService.createPenerbitanNota(
         {
-          kodeSatker,
           noTelpon,
           tahunSetoran,
-          tahunLainnya,
-          unggahDokumen: fileUrl
+          tahunLainnya
         },
-        req.userId
+        userId,
+        file
       )
       res
-        .status(201)
+        .status(200)
         .json({ dataNota, message: 'Penerbitan Nota Berhasil Dibuat' })
     } catch (error) {
       console.error('Error di Controller:', error)
@@ -95,54 +66,14 @@ router.patch(
     try {
       const penerbitanNotaId = req.params.id
       const dataNota = req.body
-      const penerbitanNota = await penerbitanNotaService.getPenerbitanNotaById(
-        penerbitanNotaId
+      const updatedNota = await penerbitanNotaService.editPenerbitanNotaById(
+        penerbitanNotaId,
+        dataNota,
+        file
       )
 
-      const isRejected = Array.isArray(penerbitanNota?.monitoring)
-        ? penerbitanNota.monitoring.some(
-            monitoring => monitoring.status === 'DITOLAK'
-          )
-        : false
-
-      let unggahDokumen = null
-
-      if (req.file) {
-        // Fungsi upload ke Cloudinary dari buffer
-        const uploadToCloudinary = buffer =>
-          new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { resource_type: 'auto' },
-              (error, result) => {
-                if (error) reject(error)
-                else resolve(result)
-              }
-            )
-            stream.end(buffer)
-          })
-
-        // Upload dokumen baru ke Cloudinary
-        const cloudinaryRes = await uploadToCloudinary(req.file.buffer)
-        unggahDokumen = cloudinaryRes.secure_url
-      }
-
-      if (!isRejected && !req.file) {
-        return res
-          .status(400)
-          .json({ message: 'Dokumen baru harus diunggah setelah penolakan' })
-      }
-
-      if (unggahDokumen) {
-        dataNota.unggahDokumen = unggahDokumen
-      }
-
-      const updatePenerbitanNota =
-        await penerbitanNotaService.editPenerbitanNotaById(penerbitanNotaId, {
-          ...dataNota,
-          unggahDokumen
-        })
       res.status(200).json({
-        updatePenerbitanNota,
+        updatedNota,
         message: 'Penerbitan Nota Bershasil Diubah'
       })
     } catch (error) {
