@@ -1,3 +1,6 @@
+const fs = require('fs')
+const path = require('path')
+const prisma = require('../db')
 const {
   InsertKoreksiPenerimaan,
   findKoreksiPenerimaan,
@@ -6,48 +9,77 @@ const {
   deleteKoreksiPenerimaan
 } = require('./koreksiPenerimaan.repository')
 
-const { getAllAdminUsers } = require('../user/user.services') // Import service user
-const { createNotification } = require('../notifikasi/notifikasi.repository')
+const ocrService = require('../service/ocrService')
+const { kmpSearch } = require('../utils/kmp')
+const patterns = require('../config/koreksiPenerimaanPattern')
 
-async function createKoreksiPenerimaan (dataKoreksi, userId) {
+const uploadsPath = path.join(__dirname, '../uploads')
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath)
+
+async function createKoreksiPenerimaan (dataKoreksi, userId, file) {
   try {
-    if (!userId) {
-      throw new Error('User ID Tidak Ditemukan')
-    }
+    if (!userId) throw new Error('User ID Tidak Ditemukan')
+    if (!file) throw new Error('Dokumen wajib diunggah!')
 
-    // Validasi alasan lainnya jika enum-nya LAINNYA
     if (dataKoreksi.tahunSetoran === 'LAINNYA' && !dataKoreksi.tahunLainnya) {
       throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
     }
 
-    // Debugging log: Pastikan data yang diterima sudah benar
-    console.log('Data yang akan disimpan:', dataKoreksi)
+    // 1. Ambil data Satker
+    const userData = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { satkerId: true }
+    })
+    if (!userData?.satkerId)
+      throw new Error('User belum terdaftar di satker manapun')
 
-    // Coba untuk memasukkan data
-    const newKoreksiPenerimaan = await InsertKoreksiPenerimaan(
-      dataKoreksi,
-      userId
-    )
+    const satkerId = userData.satkerId
 
-    // Pastikan data berhasil disimpan
-    console.log('Koreksi Penerimaan berhasil dibuat:', newKoreksiPenerimaan)
+    // 2. Simpan File PDF
+    const filename = `${Date.now()}-${file.originalname}`
+    const filePath = path.join(uploadsPath, filename)
+    fs.writeFileSync(filePath, file.buffer)
+    dataKoreksi.unggahDokumen = filename
 
-    // 🔔 Kirim notifikasi ke semua admin
-    const adminUsers = await getAllAdminUsers() // Menggunakan service untuk mengambil data admin
-    const notifMessage = `Kode Satker ${newKoreksiPenerimaan.kodeSatker} telah mengajukan dokumen koreksi penerimaan.`
+    // 3. PROSES OCR (PENTING: Membaca teks dari PDF)
+    // Gunakan await agar sistem menunggu hasil pembacaan selesai
+    const extractedText = await ocrService.extractTextFromPDF(filePath)
+    const lowerText = extractedText.toLowerCase()
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: newKoreksiPenerimaan.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'koreksiPenerimaan' // isi sesuai kebutuhan
-      })
+    const missingPatterns = []
+    const detailValidasi = {}
+
+    // 4. Analisis KMP Search
+    for (const [key, patternList] of Object.entries(patterns)) {
+      const ditemukan = patternList.some(pattern =>
+        kmpSearch(lowerText, pattern.toLowerCase())
+      )
+      detailValidasi[key] = ditemukan
+
+      if (!ditemukan) {
+        missingPatterns.push(key)
+      }
     }
 
+    const catatanKmp =
+      missingPatterns.length === 0
+        ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+        : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
+
+    dataKoreksi.catatanKmp = catatanKmp
+    dataKoreksi.hasilAnalisis = JSON.stringify(detailValidasi)
+    dataKoreksi.extractedText = extractedText // Simpan hasil OCR ke DB jika diperlukan
+
+    // 5. Simpan ke Database
+    const newKoreksiPenerimaan = await InsertKoreksiPenerimaan(
+      dataKoreksi,
+      userId,
+      satkerId
+    )
     return newKoreksiPenerimaan
   } catch (error) {
-    console.error('Error pada saat membuat Koreksi Penerimaan:', error)
+    // Tambahkan log detail di console agar kamu mudah debug
+    console.error('DEBUG ERROR KOREKSI:', error)
     throw new Error(`Gagal Membuat Koreksi Penerimaan: ${error.message}`)
   }
 }
@@ -65,49 +97,49 @@ async function getKoreksiPenerimaanById (id) {
   return koreksiPenerimaan
 }
 
-async function editKoreksiPenerimaanById (id, dataKoreksi) {
-  const koreksiPenerimaan = await getKoreksiPenerimaanById(id)
-
-  if (!koreksiPenerimaan) {
-    throw new Error(`Koreksi Penerimaan ID ${id} tidak ditemukan`)
-  }
-
-  const isRejected = Array.isArray(koreksiPenerimaan.monitoring)
-    ? koreksiPenerimaan.monitoring.some(m => m.status === 'DITOLAK')
-    : false
-
-  if (isRejected && !dataKoreksi.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakkan')
-  }
-
-  // ✅ Validasi alasan lainnya jika enum-nya LAINNYA
-  if (dataKoreksi.tahunSetoran === 'LAINNYA' && !dataKoreksi.tahunLainnya) {
-    throw new Error('Alasan lainnya wajib diisi jika memilih LAINNYA.')
+async function editKoreksiPenerimaanById (id, dataKoreksi, file) {
+  const existingData = await getKoreksiPenerimaanById(id)
+  if (!existingData) {
+    throw new Error(
+      `Data Koreksi Penerimaan dengan ID ${id} memang tidak ada di database.`
+    )
   }
 
   try {
-    if (
-      dataKoreksi.unggahDokumen &&
-      !dataKoreksi.unggahDokumen.startWith('http')
-    ) {
-      throw new Error('Unggah dokumen harus berupa URL yang valid')
-    }
-    const updateKoreksiPenerimaan = await editKoreksiPenerimaan(id, dataKoreksi)
-    const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${updateKoreksiPenerimaan.kodeSatker} telah mengupdate dokumen Koreksi Penerimaan Negara Atas Setoran Satuan Kerja.`
+    if (file) {
+      const filename = `${Date.now()}-${file.originalname}`
+      const filePath = path.join(uploadsPath, filename)
+      fs.writeFileSync(filePath, file.buffer)
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: updateKoreksiPenerimaan.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'koreksiPenerimaan' // isi sesuai kebutuhan
-      })
+      dataKoreksi.unggahDokumen = filename
+
+      const text = await ocrService.extractTextFromPDF(filePath)
+      dataKoreksi.extractedText = text
+      const lowerText = text.toLowerCase()
+      const detailValidasi = {}
+      const missingPatterns = []
+
+      for (const [key, patternList] of Object.entries(patterns)) {
+        if (Array.isArray(patternList)) {
+          const ditemukan = patternList.some(p =>
+            kmpSearch(lowerText, p.toLowerCase())
+          )
+          detailValidasi[key] = ditemukan
+          if (!ditemukan) missingPatterns.push(key)
+        }
+      }
+
+      dataKoreksi.hasilAnalisis = JSON.stringify(detailValidasi)
+      dataKoreksi.catatanKmp =
+        missingPatterns.length === 0
+          ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+          : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
     }
-    return updateKoreksiPenerimaan
+    const updated = await editKoreksiPenerimaan(id, dataKoreksi)
+    return updated
   } catch (error) {
     console.error('Error saat update Koreksi Penerimaan:', error)
-    throw error
+    throw new Error(`Gagal memperbarui data: ${error.message}`)
   }
 }
 

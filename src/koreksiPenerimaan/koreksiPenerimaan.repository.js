@@ -6,41 +6,51 @@ const enumTahunMap = {
   LAINNYA: 'LAINNYA'
 }
 
-async function InsertKoreksiPenerimaan (dataKoreksi, userId) {
-  if (!userId) throw new Error('User Id Tidak Ditemukan')
+async function InsertKoreksiPenerimaan (dataKoreksi, userId, satkerId) {
   const mappedTahun = enumTahunMap[dataKoreksi.tahunSetoran]
   if (!mappedTahun) {
     throw new Error('Tahun Setoran tidak valid!')
   }
-  const newKoreksiPenerimaan = await prisma.koreksiPenerimaan.create({
+  return await prisma.koreksiPenerimaan.create({
     data: {
-      kodeSatker: dataKoreksi.kodeSatker,
       noTelpon: dataKoreksi.noTelpon,
       tahunSetoran: mappedTahun,
       tahunLainnya: dataKoreksi.tahunLainnya || null,
       unggahDokumen: dataKoreksi.unggahDokumen,
-      userId: userId,
+      extractedText: dataKoreksi.extractedText,
+      user: {
+        connect: { id: userId }
+      },
+      satker: {
+        connect: { id: satkerId }
+      },
       monitoring: {
         create: {
           status: 'DIPROSES',
-          userId: userId
+          hasilKmp: dataKoreksi.hasilAnalisis,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
     include: { monitoring: true }
   })
-  return newKoreksiPenerimaan
 }
 
 async function findKoreksiPenerimaan () {
   const koreksiPenerimaan = await prisma.koreksiPenerimaan.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       tahunSetoran: true,
       tahunLainnya: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return koreksiPenerimaan
@@ -54,7 +64,14 @@ async function findKoreksiPenerimaanById (id) {
     include: {
       monitoring: {
         select: {
-          status: true
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -68,24 +85,35 @@ async function editKoreksiPenerimaan (id, dataKoreksi) {
     include: { monitoring: true }
   })
 
-  if (!koreksiPenerimaan) {
-    throw new Error('Koreksi Penerimaan tidak ditemukan')
-  }
+  if (!koreksiPenerimaan) throw new Error('Koreksi Penerimaan tidak ditemukan')
 
   if (!koreksiPenerimaan.unggahDokumen) {
     throw new Error('Dokumen baru harus diunggah setelah penolakan')
   }
-
   const updateKoreksiPenerimaan = await prisma.koreksiPenerimaan.update({
     where: { id: parseInt(id) },
     data: {
-      unggahDokumen: dataKoreksi.unggahDokumen
-    }
+      ...(dataKoreksi.noTelpon && { noTelpon: dataKoreksi.noTelpon }),
+      ...(dataKoreksi.tahunSetoran && {
+        tahunSetoran: dataKoreksi.tahunSetoran
+      }),
+      ...(dataKoreksi.tahunLainnya !== undefined && {
+        tahunLainnya: dataKoreksi.tahunLainnya
+      }),
+      ...(dataKoreksi.unggahDokumen && {
+        unggahDokumen: dataKoreksi.unggahDokumen
+      }),
+      ...(dataKoreksi.extractedText && {
+        extractedText: dataKoreksi.extractedText
+      })
+    },
+    include: { satker: true }
   })
 
   if (koreksiPenerimaan.monitoring && koreksiPenerimaan.monitoring.length > 0) {
-    const lastMonitoring =
-      koreksiPenerimaan.monitoring[koreksiPenerimaan.monitoring.length - 1]
+    const lastMonitoring = koreksiPenerimaan.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringKoreksiPenerimaan.update({
       where: { id: lastMonitoring.id },
       data: {

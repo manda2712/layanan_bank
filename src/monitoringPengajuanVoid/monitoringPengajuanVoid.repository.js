@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringPengajuanVoid () {
-  const monitoring = await prisma.monitoringPengajuanVoid.findMany({
+  return await prisma.monitoringPengajuanVoid.findMany({
     select: {
       id: true,
       status: true,
@@ -9,20 +9,39 @@ async function findMonitoringPengajuanVoid () {
       pengajuanVoidId: true,
       pengajuanVoid: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           alasanVoid: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return monitoring
+}
+
+async function findMonitoringPengajuanVoidAdmin () {
+  return await prisma.monitoringPengajuanVoid.findMany({
+    select: {
+      id: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      pengajuanVoidId: true,
+      pengajuanVoid: {
+        select: {
+          userId: true,
+          noTelpon: true,
+          alasanVoid: true,
+          extractedText: true,
+          unggahDokumen: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    }
+  })
 }
 
 async function findMonitoringPengujuanVoidById (id) {
@@ -35,15 +54,18 @@ async function findMonitoringPengujuanVoidById (id) {
       catatan: true,
       pengajuanVoid: {
         select: {
-          kodeSatker: true,
+          id: true,
           noTelpon: true,
           alasanVoid: true,
           unggahDokumen: true,
-          user: {
+          userId: true,
+          satker: {
             select: {
-              namaLengkap: true
+              kodeSatker: true,
+              namaInstansi: true
             }
-          }
+          },
+          user: { select: { namaLengkap: true } }
         }
       }
     }
@@ -52,30 +74,29 @@ async function findMonitoringPengujuanVoidById (id) {
 }
 
 async function updateMonitoringPengajuanVoid (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringPengajuanVoid.update({
+  const monitoringId = parseInt(id)
+  if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
+  return await prisma.monitoringPengajuanVoid.update({
     where: { id: parseInt(id) },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       pengajuanVoid: {
         include: {
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deleteMonitoringPengajuanVoid (id) {
   return await prisma.$transaction(async prisma => {
-    // Hapus monitoring dulu
     const deletedMonitoring = await prisma.monitoringPengajuanVoid.delete({
       where: { id: parseInt(id) }
     })
@@ -92,6 +113,7 @@ async function deleteMonitoringPengajuanVoid (id) {
 module.exports = {
   findMonitoringPengajuanVoid,
   findMonitoringPengujuanVoidById,
+  findMonitoringPengajuanVoidAdmin,
   updateMonitoringPengajuanVoid,
   deleteMonitoringPengajuanVoid
 }

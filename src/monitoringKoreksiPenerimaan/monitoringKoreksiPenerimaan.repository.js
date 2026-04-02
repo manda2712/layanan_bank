@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringKoreksiPenerimaan () {
-  const monitoring = await prisma.monitoringKoreksiPenerimaan.findMany({
+  return await prisma.monitoringKoreksiPenerimaan.findMany({
     select: {
       id: true,
       koreksiPenerimaanId: true,
@@ -9,16 +9,13 @@ async function findMonitoringKoreksiPenerimaan () {
       catatan: true,
       koreksiPenerimaan: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           tahunSetoran: true,
           tahunLainnya: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     },
@@ -26,7 +23,31 @@ async function findMonitoringKoreksiPenerimaan () {
       id: 'asc' // atau 'desc' kalau ingin terbaru di atas
     }
   })
-  return monitoring
+}
+
+async function findMonitoringKoreksiPenerimaanAdmin () {
+  return await prisma.monitoringKoreksiPenerimaan.findMany({
+    select: {
+      id: true,
+      koreksiPenerimaanId: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      koreksiPenerimaan: {
+        select: {
+          noTelpon: true,
+          tahunSetoran: true,
+          tahunLainnya: true,
+          unggahDokumen: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    },
+    orderBy: {
+      id: 'asc' // atau 'desc' kalau ingin terbaru di atas
+    }
+  })
 }
 
 async function findMonitoringKoreksiPenerimaanById (id) {
@@ -37,18 +58,21 @@ async function findMonitoringKoreksiPenerimaanById (id) {
       koreksiPenerimaanId: true,
       status: true,
       catatan: true,
+      hasilKmp: true,
       koreksiPenerimaan: {
         select: {
-          kodeSatker: true,
+          id: true,
           noTelpon: true,
           tahunSetoran: true,
           tahunLainnya: true,
           unggahDokumen: true,
           user: {
             select: {
-              namaLengkap: true
+              kodeSatker: true,
+              namaInstansi: true
             }
-          }
+          },
+          user: { select: { namaLengkap: true } }
         }
       }
     }
@@ -57,25 +81,26 @@ async function findMonitoringKoreksiPenerimaanById (id) {
 }
 
 async function updateMonitoringKoreksiPenerimaan (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringKoreksiPenerimaan.update({
-    where: { id: parseInt(id) },
+  const monitoringId = parseInt(id)
+  if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
+
+  return await prisma.monitoringKoreksiPenerimaan.update({
+    where: { id: monitoringId },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       koreksiPenerimaan: {
         include: {
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deletedMonitoringKoreksiPenerimaan (id) {
@@ -94,6 +119,7 @@ async function deletedMonitoringKoreksiPenerimaan (id) {
 
 module.exports = {
   findMonitoringKoreksiPenerimaan,
+  findMonitoringKoreksiPenerimaanAdmin,
   findMonitoringKoreksiPenerimaanById,
   updateMonitoringKoreksiPenerimaan,
   deletedMonitoringKoreksiPenerimaan

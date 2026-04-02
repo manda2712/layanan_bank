@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringLaporanRekening () {
-  const monitoring = await prisma.monitoringLaporanRekening.findMany({
+  return await prisma.monitoringLaporanRekening.findMany({
     select: {
       id: true,
       laporanRekeningId: true,
@@ -9,24 +9,42 @@ async function findMonitoringLaporanRekening () {
       catatan: true,
       laporanRekening: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           jenisLaporan: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return monitoring
+}
+
+async function findMonitoringLaporanRekeningForAdmin () {
+  return await prisma.monitoringLaporanRekening.findMany({
+    select: {
+      id: true,
+      laporanRekeningId: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      laporanRekening: {
+        select: {
+          noTelpon: true,
+          jenisLaporan: true,
+          unggahDokumen: true,
+          extractedText: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    }
+  })
 }
 
 async function findMonitoringLaporanRekeningById (id) {
-  const monitoring = await prisma.monitoringLaporanRekening.findUnique({
+  return await prisma.monitoringLaporanRekening.findUnique({
     where: { id: parseInt(id) },
     select: {
       id: true,
@@ -35,7 +53,6 @@ async function findMonitoringLaporanRekeningById (id) {
       catatan: true,
       laporanRekening: {
         select: {
-          kodeSatker: true,
           noTelpon: true,
           jenisLaporan: true,
           unggahDokumen: true,
@@ -48,30 +65,27 @@ async function findMonitoringLaporanRekeningById (id) {
       }
     }
   })
-  return monitoring
 }
 
 async function updateMonitoringLaporanRekening (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringLaporanRekening.update({
-    where: { id: parseInt(id) },
+  const monitoringId = parseInt(id)
+  return await prisma.monitoringLaporanRekening.update({
+    where: { id: monitoringId },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       laporanRekening: {
         include: {
-          user: {
-            // ✅ Ambil data user
-            select: {
-              namaLengkap: true // Pastikan ada field 'nama' dalam tabel user
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deletedMonitoringLaporanRekening (id) {

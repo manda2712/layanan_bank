@@ -63,21 +63,18 @@ async function findMonitoringReturSp2dById (id) {
           alasanRetur: true,
           alasanLainnya: true,
           unggah_dokumen: true,
-          userId: true,
-          satker: {
+          user: {
             select: {
-              kodeSatker: true,
-              namaInstansi: true
+              namaLengkap: true
             }
-          },
-          user: { select: { namaLengkap: true } }
+          }
         }
       }
-    }
+    },
+    orderBy: { createdAt: 'desc' }
   })
 }
 
-// 4. UPDATE STATUS (ADMIN)
 async function updatedMonitoringReturSp2d (id, dataMonitoring) {
   const monitoringId = parseInt(id)
   if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
@@ -101,7 +98,6 @@ async function updatedMonitoringReturSp2d (id, dataMonitoring) {
   })
 }
 
-// 5. DELETE (TRANSACTION)
 async function deleteMonitoringReturSp2d (id) {
   return await prisma.$transaction(async tx => {
     const deletedMonitoring = await tx.monitoringReturSp2d.delete({

@@ -2,18 +2,27 @@ const express = require('express')
 const router = express.Router()
 const monitoringLaporanRekeningService = require('./monitoringLaporanRekening.service')
 const adminAuthorize = require('../middleware/adminAuthorizeJWT')
+const authorizeJWT = require('../middleware/authorizeJWT')
 
-router.get('/', async (req, res) => {
+router.get('/', authorizeJWT, async (req, res) => {
   try {
-    const monitoringList =
-      await monitoringLaporanRekeningService.getAllMonitoringLaporanRekening()
+    let monitoringList
+    if (req.user.role === 'admin') {
+      monitoringList =
+        await monitoringLaporanRekeningService.getAllMonitoringLaporanRekening()
+    } else {
+      monitoringList =
+        await monitoringLaporanRekeningService.getAllMonitoringLaporanRekening(
+          req.user
+        )
+    }
     res.send(monitoringList)
   } catch (error) {
     res.status(500).send(error.message)
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJWT, async (req, res) => {
   try {
     const monitoringId = parseInt(req.params.id)
     const monitoring =
@@ -35,18 +44,16 @@ router.patch('/:id', adminAuthorize, async (req, res) => {
         monitoringId,
         monitoringData
       )
-    res
-      .status(200)
-      .json({
-        updatedMonitoring,
-        message: 'Status Laporan Rekening Berhasil Diubah'
-      })
+    res.status(200).json({
+      updatedMonitoring,
+      message: 'Status Laporan Rekening Berhasil Diubah'
+    })
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminAuthorize, async (req, res) => {
   try {
     const monitoringId = req.params.id
     await monitoringLaporanRekeningService.deletedMonitoringLaporanRekeningById(

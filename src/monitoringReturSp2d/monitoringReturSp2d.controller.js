@@ -4,11 +4,9 @@ const monitoringReturSp2dService = require('./monitoringReturSp2d.service')
 const adminAuthorize = require('../middleware/adminAuthorizeJWT')
 const authorizeJWT = require('../middleware/authorizeJWT')
 
-// 1. Endpoint Utama: Otomatis bedakan Admin dan User
 router.get('/', authorizeJWT, async (req, res) => {
   try {
     let monitoringList
-    // Cek role dari token (asumsi payload token punya property role)
     if (req.user.role === 'admin') {
       monitoringList =
         await monitoringReturSp2dService.getAllMonitoringForAdmin()
@@ -24,7 +22,6 @@ router.get('/', authorizeJWT, async (req, res) => {
   }
 })
 
-// 2. Endpoint Detail (Bisa dipakai Admin/User)
 router.get('/:id', authorizeJWT, async (req, res) => {
   try {
     const monitoringId = parseInt(req.params.id)
@@ -36,12 +33,10 @@ router.get('/:id', authorizeJWT, async (req, res) => {
   }
 })
 
-// 3. Update Status (Hanya Admin)
 router.patch('/:id', adminAuthorize, async (req, res) => {
   try {
     const monitoringId = req.params.id
-    const monitoringData = req.body // Isinya: { status: 'DITOLAK', catatan: 'Alasan..' }
-
+    const monitoringData = req.body
     const updatedMonitoring =
       await monitoringReturSp2dService.editMonitoringReturSp2dById(
         monitoringId,
@@ -57,7 +52,6 @@ router.patch('/:id', adminAuthorize, async (req, res) => {
   }
 })
 
-// 4. Delete (Hanya Admin)
 router.delete('/:id', adminAuthorize, async (req, res) => {
   try {
     const monitoringId = req.params.id

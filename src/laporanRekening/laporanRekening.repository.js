@@ -1,35 +1,49 @@
 const prisma = require('../db')
 
-async function insertLaporanRekening (dataLaporan, userId) {
+async function insertLaporanRekening (dataLaporan, userId, satkerId) {
   if (!userId) throw new Error('User Id Tidak Ditemukan')
 
-  const newLaporanRekening = await prisma.laporanRekening.create({
+  return await prisma.laporanRekening.create({
     data: {
-      kodeSatker: dataLaporan.kodeSatker,
       noTelpon: dataLaporan.noTelpon,
       jenisLaporan: dataLaporan.jenisLaporan,
       unggahDokumen: dataLaporan.unggahDokumen,
-      userId: userId,
+      extractedText: dataLaporan.extractedText,
+      validationResult: dataLaporan.validationResult,
+      user: {
+        connect: { id: userId }
+      },
+
+      satker: {
+        connect: { id: satkerId }
+      },
       monitoring: {
         create: {
           status: 'DIPROSES',
-          userId: userId
+          hasilKmp: dataLaporan.hasilAnalisis,
+          catatan: null,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
     include: { monitoring: true }
   })
-  return newLaporanRekening
 }
 
 async function findLaporanRekening () {
   const laporanRekening = await prisma.laporanRekening.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       jenisLaporan: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return laporanRekening
@@ -43,7 +57,14 @@ async function findLaporanRekeningById (id) {
     include: {
       monitoring: {
         select: {
-          status: true
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -61,20 +82,26 @@ async function editLaporanRekening (id, dataLaporan) {
     throw new Error('Laporan Rekening tidak ditemukan!')
   }
 
-  if (!dataLaporan.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
-  }
-
   const updateLaporanRekening = await prisma.laporanRekening.update({
     where: { id: parseInt(id) },
     data: {
-      unggahDokumen: dataLaporan.unggahDokumen
+      ...(dataLaporan.noTelpon && { noTelpon: dataLaporan.noTelpon }),
+      ...(dataLaporan.jenisLaporan && {
+        jenisLaporan: dataLaporan.jenisLaporan
+      }),
+      ...(dataLaporan.unggahDokumen && {
+        unggahDokumen: dataLaporan.unggahDokumen
+      }),
+      ...(dataLaporan.extractedText && {
+        extractedText: dataLaporan.extractedText
+      })
     }
   })
 
   if (laporanRekening.monitoring && laporanRekening.monitoring.length > 0) {
-    const lastMonitoring =
-      laporanRekening.monitoring[laporanRekening.monitoring.length - 1]
+    const lastMonitoring = laporanRekening.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringLaporanRekening.update({
       where: { id: lastMonitoring.id },
       data: {

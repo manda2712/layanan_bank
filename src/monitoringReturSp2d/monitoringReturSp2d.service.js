@@ -32,7 +32,6 @@ async function getAllMonitoringReturSp2d (user) {
 }
 
 async function getAllMonitoringForAdmin () {
-  // Gunakan fungsi repo khusus admin (ada extractedText & hasilKmp)
   const data = await findMonitoringForAdmin()
 
   return data.map(item => {

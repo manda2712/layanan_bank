@@ -1,3 +1,6 @@
+const fs = require('fs')
+const path = require('path')
+const prisma = require('../db')
 const {
   insertPembukaanRekening,
   findPembukaanRekening,
@@ -6,86 +9,133 @@ const {
   deletePembukaanRekening
 } = require('./pembukaanRekening.repository')
 
-const { getAllAdminUsers } = require('../user/user.services') // Import service user
-const { createNotification } = require('../notifikasi/notifikasi.repository')
+const ocrService = require('../service/ocrService')
+const { kmpSearch } = require('../utils/kmp')
+const patterns = require('../config/pembukaanRekeningPattern')
 
-async function createPembukaanRekening (dataRekening, userId) {
+const uploadsPath = path.join(__dirname, '../uploads')
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true })
+
+async function createPembukaanRekening (dataRekening, userId, file) {
   try {
-    if (!userId) {
-      throw new Error('User ID tidak ditemukan!')
+    if (!userId) throw new Error('User ID tidak ditemukan!')
+    if (!file) throw new Error('Dokumen wajib diunggah!')
+
+    const userData = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { satkerId: true }
+    })
+
+    if (!userData?.satkerId)
+      throw new Error('User belum terdaftar di Satker manapun.')
+
+    const satkerId = userData.satkerId
+    const filename = `${Date.now()}-${file.originalname}`
+    const filePath = path.join(uploadsPath, filename)
+    fs.writeFileSync(filePath, file.buffer)
+
+    dataRekening.unggahDokumen = filename
+    const extractedText = await ocrService.extractTextFromPDF(filePath)
+    dataRekening.extractedText = extractedText
+    const lowerText = extractedText.toLowerCase()
+
+    const isHibahDocument =
+      kmpSearch(lowerText, 'hibah') || kmpSearch(lowerText, 'register')
+    const masterPatternKey = isHibahDocument
+      ? 'rekeningHibah'
+      : 'rekeningSatker'
+
+    // Ambil object pattern-nya (misal: patterns.rekeningHibah)
+    const selectedPattern = patterns[masterPatternKey]
+
+    const missingPatterns = []
+    const detailValidasi = {}
+
+    // Lakukan validasi menggunakan KMP
+    if (selectedPattern) {
+      for (const [key, patternList] of Object.entries(selectedPattern)) {
+        if (Array.isArray(patternList)) {
+          const ditemukan = patternList.some(pattern =>
+            kmpSearch(lowerText, pattern.toLowerCase())
+          )
+          detailValidasi[key] = ditemukan
+          if (!ditemukan) missingPatterns.push(key)
+        }
+      }
     }
 
-    const newRekening = await insertPembukaanRekening(dataRekening, userId)
-    const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${newRekening.kodeSatker} telah mengajukan dokumen Pengajuan Persetujuan Pembukaan Rekening.`
+    // Set hasil analisis untuk database
+    dataRekening.catatanKmp =
+      missingPatterns.length === 0
+        ? 'Sistem: Dokumen Terdeteksi Lengkap Sesuai Syarat.'
+        : `Sistem: Syarat tidak ditemukan: [${missingPatterns.join(', ')}]`
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: newRekening.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'pembukaanRekening' // isi sesuai kebutuhan
-      })
-    }
-    return newRekening
+    dataRekening.hasilAnalisis = JSON.stringify(detailValidasi)
+
+    const newPembukaanRekening = await insertPembukaanRekening(
+      dataRekening,
+      userId,
+      satkerId
+    )
+    return newPembukaanRekening
   } catch (error) {
     console.error('Error saat membuat pembukaan rekening:', error)
-    throw new Error('Gagal membuat pembukaan rekening!')
+    // Throw error asli agar pesan dari 'missing patterns' sampai ke frontend
+    throw error
   }
 }
 
 async function getAllPembukaanRekening () {
-  const pembukaanRekening = findPembukaanRekening()
-  return pembukaanRekening
+  return await findPembukaanRekening()
 }
 
 async function getPembukaanRekeningById (id) {
-  const pembukaanRekening = findPembukaanRekeningById(id)
-  if (!pembukaanRekening) {
-    throw new Error('Tidak Dapat Menemukan Pembukaan Rekening')
-  }
-  return pembukaanRekening
+  const data = await findPembukaanRekeningById(id)
+  if (!data) throw new Error('Tidak Dapat Menemukan Pembukaan Rekening')
+  return data
 }
 
-async function editPembukaanRekeningById (id, dataRekening) {
-  const pembukaanRekening = await getPembukaanRekeningById(id)
-
-  if (!pembukaanRekening) {
-    throw new Error(`Pembukaan Rekening pada ID ${id} tidak ditemukan`)
-  }
-
-  const isRejected = Array.isArray(pembukaanRekening.monitoring)
-    ? pembukaanRekening.monitoring.some(m => m.status === 'DITOLAK')
-    : false
-
-  if (isRejected && !dataRekening.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
-  }
+async function editPembukaanRekeningById (id, dataRekening, file) {
+  const existing = await getPembukaanRekeningById(id)
 
   try {
-    if (
-      dataRekening.unggahDokumen &&
-      !dataRekening.unggahDokumen.startWith('http')
-    ) {
-      throw new Error('Unggah dokumen berupa URL yang valid.')
-    }
-    const updatePembukaanRekening = await editPembukaanRekening(
-      id,
-      dataRekening
-    )
+    if (file) {
+      const filename = `${Date.now()}-${file.originalname}`
+      const filePath = path.join(uploadsPath, filename)
+      fs.writeFileSync(filePath, file.buffer)
 
-    const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${updatePembukaanRekening.kodeSatker} telah mengupdate dokumen Pengembalian PNBP.`
+      dataRekening.unggahDokumen = filename
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: updatePembukaanRekening.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'pembukaanRekening' // isi sesuai kebutuhan
-      })
+      const text = await ocrService.extractTextFromPDF(filePath)
+      dataRekening.extractedText = text
+      const lowerText = text.toLowerCase()
+
+      const selectedCategory =
+        patterns[dataRekening.jenisRekening || existing.jenisRekening]
+      const detailValidasi = {}
+      const missingPatterns = []
+
+      if (selectedCategory) {
+        for (const [key, patternList] of Object.entries(selectedCategory)) {
+          if (Array.isArray(patternList)) {
+            const ditemukan = patternList.some(p =>
+              kmpSearch(lowerText, p.toLowerCase())
+            )
+            detailValidasi[key] = ditemukan
+            if (!ditemukan) missingPatterns.push(key)
+          }
+        }
+        dataRekening.hasilAnalisis = JSON.stringify(detailValidasi)
+        dataRekening.catatanKmp =
+          missingPatterns.length === 0
+            ? 'Sistem: Dokumen Terdeteksi Lengkap.'
+            : `Sistem: Syarat tidak ditemukan pada: [${missingPatterns.join(
+                ', '
+              )}]`
+      }
     }
-    return updatePembukaanRekening
+
+    return await editPembukaanRekening(id, dataRekening)
   } catch (error) {
     console.error('Error saat update Pembukaan Rekening:', error)
     throw error

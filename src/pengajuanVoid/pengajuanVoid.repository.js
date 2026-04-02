@@ -1,34 +1,49 @@
 const prisma = require('../db')
 
-async function insertPengajuanVoid (dataVoid, userId) {
+async function insertPengajuanVoid (dataVoid, userId, satkerId) {
   if (!userId) throw new Error('User ID tidak ditemukan!')
-  const newPengajuanVoid = await prisma.pengajuanVoid.create({
+
+  return await prisma.pengajuanVoid.create({
     data: {
-      kodeSatker: dataVoid.kodeSatker,
       noTelpon: dataVoid.noTelpon,
       alasanVoid: dataVoid.alasanVoid,
       unggahDokumen: dataVoid.unggahDokumen,
-      userId: userId,
+      extractedText: dataVoid.extractedText,
+      validationResult: dataVoid.validationResult,
+      user: {
+        connect: { id: userId }
+      },
+
+      satker: {
+        connect: { id: satkerId }
+      },
       monitoring: {
         create: {
           status: 'DIPROSES',
-          userId: userId
+          hasilKmp: dataVoid.hasilAnalisis,
+          catatan: null,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
     include: { monitoring: true }
   })
-  return newPengajuanVoid
 }
 
 async function findPengajuanVoid () {
   const pengajuanVoid = await prisma.pengajuanVoid.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       alasanVoid: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return pengajuanVoid
@@ -40,7 +55,14 @@ async function findPengajuanVoidById (id) {
     include: {
       monitoring: {
         select: {
-          status: true // ambil hanya field tertentu dari relasi monitoring
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -56,24 +78,21 @@ async function editPengajuanVoid (id, dataVoid) {
     include: { monitoring: true }
   })
 
-  if (!pengajuanVoid) {
-    throw new Error('Pengajuan Void tidak ditemukan')
-  }
-
-  if (!dataVoid.unggahDokumen) {
-    throw new Error('Dokumen baru harus diubah setelah penolakan')
-  }
-
+  if (!pengajuanVoid) throw new Error('Pengajuan Void tidak ditemukan')
   const updatePengajuanVoid = await prisma.pengajuanVoid.update({
-    where: { id: parseInt(id) },
+    where: { id: Number(id) },
     data: {
-      unggahDokumen: dataVoid.unggahDokumen
+      ...(dataVoid.noTelpon && { noTelpon: dataVoid.noTelpon }),
+      ...(dataVoid.alasanVoid && { alasanVoid: dataVoid.alasanVoid }),
+      ...(dataVoid.unggahDokumen && { unggahDokumen: dataVoid.unggahDokumen }),
+      ...(dataVoid.extractedText && { extractedText: dataVoid.extractedText })
     }
   })
 
   if (pengajuanVoid.monitoring && pengajuanVoid.monitoring.length > 0) {
-    const lastMonitoring =
-      pengajuanVoid.monitoring[pengajuanVoid.monitoring.length - 1]
+    const lastMonitoring = pengajuanVoid.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringPengajuanVoid.update({
       where: { id: lastMonitoring.id },
       data: {

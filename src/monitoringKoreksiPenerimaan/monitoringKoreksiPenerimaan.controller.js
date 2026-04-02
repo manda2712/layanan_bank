@@ -2,19 +2,28 @@ const express = require('express')
 const router = express.Router()
 const monitoringKoreksiPenerimaanService = require('./monitoringKoreksiPenerimaan.service')
 const adminAuthorize = require('../middleware/adminAuthorizeJWT')
+const authorizeJWT = require('../middleware/authorizeJWT')
 
-router.get('/', async (req, res) => {
+router.get('/', authorizeJWT, async (req, res) => {
   try {
-    const monitoringList =
-      await monitoringKoreksiPenerimaanService.getAllMonitoringKoreksiPenerimaan()
-    res.send(monitoringList)
+    let monitoringList
+    if (req.user.role === 'admin') {
+      monitoringList =
+        await monitoringKoreksiPenerimaanService.getMonitoringKoreksiForAdmin()
+    } else {
+      monitoringList =
+        await monitoringKoreksiPenerimaanService.getAllMonitoringKoreksiPenerimaan(
+          req.user
+        )
+    }
+    res.status(200).json(monitoringList)
   } catch (error) {
     console.log('gagal mengambil data', error)
     res.status(500).send(error.message)
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authorizeJWT, async (req, res) => {
   try {
     const monitoringId = parseInt(req.params.id)
     const monitoring =
@@ -45,7 +54,7 @@ router.patch('/:id', adminAuthorize, async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', adminAuthorize, async (req, res) => {
   try {
     const monitoringId = req.params.id
     await monitoringKoreksiPenerimaanService.deletedMonitoringKoreksiPenerimaanById(

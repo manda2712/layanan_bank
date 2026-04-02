@@ -2,11 +2,58 @@ const {
   findMonitoringKoreksiPenerimaan,
   findMonitoringKoreksiPenerimaanById,
   updateMonitoringKoreksiPenerimaan,
-  deletedMonitoringKoreksiPenerimaan
+  deletedMonitoringKoreksiPenerimaan,
+  findMonitoringKoreksiPenerimaanAdmin
 } = require('./monitoringKoreksiPenerimaan.repository')
 
-async function getAllMonitoringKoreksiPenerimaan () {
-  return await findMonitoringKoreksiPenerimaan()
+function formatStatus (status) {
+  const statusMap = {
+    DIPROSES: 'Menunggu Validasi Admin',
+    SELESAI: 'Selesai',
+    DITOLAK: 'Ditolak',
+    MENUNGGU_VALIDASI_ADMIN: 'Menunggu Validasi Admin'
+  }
+  return statusMap[status] || status
+}
+
+async function getAllMonitoringKoreksiPenerimaan (user) {
+  const data = await findMonitoringKoreksiPenerimaan()
+
+  // Filter dengan keamanan ekstra
+  return data
+    .filter(item => item.koreksiPenerimaan?.userId === user.id)
+    .map(item => ({
+      id: item.id,
+      koreksiPenerimaanId: item.koreksiPenerimaanId,
+      status: formatStatus(item.status),
+      catatan: item.catatan,
+      koreksiPenerimaan: item.koreksiPenerimaan
+    }))
+}
+
+async function getMonitoringKoreksiForAdmin () {
+  const data = await findMonitoringKoreksiPenerimaanAdmin()
+
+  return data.map(item => {
+    let checklistKmp = null
+    try {
+      checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+    } catch (error) {
+      console.error('Gagal parse JSON hasilKmp:', error)
+    }
+    return {
+      id: item.id,
+      koreksiPenerimaanId: item.koreksiPenerimaanId,
+      status: formatStatus(item.status),
+      statusOrginal: item.status,
+      catatan: item.catatan,
+      checklistKmp: checklistKmp,
+      koreksiPenerimaan: {
+        ...item.koreksiPenerimaan,
+        extractedText: item.koreksiPenerimaan.extractedText
+      }
+    }
+  })
 }
 
 async function getMonitoringKoreksiPenerimaanById (id) {
@@ -33,6 +80,7 @@ async function deletedMonitoringKoreksiPenerimaanById (id) {
 
 module.exports = {
   getAllMonitoringKoreksiPenerimaan,
+  getMonitoringKoreksiForAdmin,
   getMonitoringKoreksiPenerimaanById,
   editMonitoringKoreksiPenerimaan,
   deletedMonitoringKoreksiPenerimaanById

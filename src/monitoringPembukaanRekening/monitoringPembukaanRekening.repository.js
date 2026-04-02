@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringPembukaanRekening () {
-  const monitoring = await prisma.monitoringPembukaanRekening.findMany({
+  return await prisma.monitoringPembukaanRekening.findMany({
     select: {
       id: true,
       pembukaanRekeningId: true,
@@ -9,24 +9,44 @@ async function findMonitoringPembukaanRekening () {
       catatan: true,
       pembukaanRekening: {
         select: {
-          kodeSatker: true,
+          userId: true,
           noTelpon: true,
           jenisRekening: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
-    }
+    },
+    orderBy: { id: 'desc' }
   })
-  return monitoring
+}
+
+async function findMonitoringPembukaanRekeningForAdmin () {
+  return await prisma.monitoringPembukaanRekening.findMany({
+    select: {
+      id: true,
+      pembukaanRekeningId: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      pembukaanRekening: {
+        select: {
+          noTelpon: true,
+          jenisRekening: true,
+          unggahDokumen: true,
+          extractedText: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    },
+    orderBy: { id: 'desc' }
+  })
 }
 
 async function findMonitoringPembukaanRekeningById (id) {
-  const monitoring = await prisma.monitoringPembukaanRekening.findUnique({
+  return await prisma.monitoringPembukaanRekening.findUnique({
     where: { id: parseInt(id) },
     select: {
       id: true,
@@ -35,7 +55,6 @@ async function findMonitoringPembukaanRekeningById (id) {
       catatan: true,
       pembukaanRekening: {
         select: {
-          kodeSatker: true,
           noTelpon: true,
           jenisRekening: true,
           unggahDokumen: true,
@@ -48,40 +67,36 @@ async function findMonitoringPembukaanRekeningById (id) {
       }
     }
   })
-  return monitoring
 }
 
 async function updateMonitoringPembukaanRekening (id, dataMonitoring) {
-  const updatedMonitoring = await prisma.monitoringPembukaanRekening.update({
-    where: { id: parseInt(id) },
+  const monitoringId = parseInt(id)
+  if (isNaN(monitoringId)) throw new Error('ID Monitoring tidak valid')
+
+  return await prisma.monitoringPembukaanRekening.update({
+    where: { id: monitoringId },
     data: {
-      status: dataMonitoring.status,
-      catatan: dataMonitoring.catatan ?? null
+      ...(dataMonitoring.status && { status: dataMonitoring.status }),
+      ...(dataMonitoring.hasOwnProperty('catatan') && {
+        catatan: dataMonitoring.catatan
+      })
     },
     include: {
       pembukaanRekening: {
         include: {
-          user: {
-            // ✅ Ambil data user
-            select: {
-              namaLengkap: true // Pastikan ada field 'nama' dalam tabel user
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return updatedMonitoring
 }
 
 async function deleteMonitoringPembukaanRekening (id) {
   return await prisma.$transaction(async prisma => {
-    // Hapus monitoring dulu
     const deletedMonitoring = await prisma.monitoringPembukaanRekening.delete({
       where: { id: parseInt(id) }
     })
-
-    // Hapus returSp2d yang terkait
     await prisma.pembukaanRekening.delete({
       where: { id: deletedMonitoring.pembukaanRekeningId }
     })
@@ -93,6 +108,7 @@ async function deleteMonitoringPembukaanRekening (id) {
 module.exports = {
   findMonitoringPembukaanRekening,
   findMonitoringPembukaanRekeningById,
+  findMonitoringPembukaanRekeningForAdmin,
   updateMonitoringPembukaanRekening,
   deleteMonitoringPembukaanRekening
 }

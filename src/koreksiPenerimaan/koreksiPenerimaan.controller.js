@@ -3,11 +3,6 @@ const router = express.Router()
 const authorizeJWT = require('../middleware/authorizeJWT')
 const koreksiPenerimaanService = require('./koreksiPenerimaan.service')
 const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
-const adminAuthorize = require('../middleware/adminAuthorizeJWT')
-const cloudinary = require('cloudinary').v2
-
 const storage = multer.memoryStorage()
 const upload = multer({ storage })
 
@@ -17,66 +12,28 @@ router.post(
   upload.single('unggahDokumen'),
   async (req, res) => {
     try {
-      console.log('User ID dari request:', req.userId)
+      const { noTelpon, tahunSetoran, tahunLainnya } = req.body
+      const userId = req.user?.id
+      const file = req.file
 
-      if (!req.userId) {
-        return res.status(401).json({ message: 'User Tidak Terautentikasi' })
-      }
-
-      const { kodeSatker, noTelpon, tahunSetoran, tahunLainnya } = req.body
-      const unggahDokumen = req.file ? req.file.filename : null // Ambil path file
-
-      // Validasi untuk memastikan kodeSatker, noTelpon, dan tahunSetoran ada
-      if (!kodeSatker || !noTelpon || !tahunSetoran) {
-        return res.status(400).json({ message: 'Semua field wajib diisi!' })
-      }
-
-      // Validasi dokumen yang diunggah
-      if (!req.file) {
+      if (!userId)
         return res.status(400).json({ message: 'Dokumen wajib diunggah!' })
-      }
-
-      const uploadToCloudinary = buffer =>
-        new Promise((resolve, rejects) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { resource_type: 'auto' },
-            (error, result) => {
-              if (error) rejects(error)
-              else resolve(result)
-            }
-          )
-          stream.end(buffer)
-        })
-      const result = await uploadToCloudinary(req.file.buffer)
-      const fileUrl = result.secure_url
-
-      // Validasi tambahan jika tahunSetoran adalah 'LAINNYA' dan tahunLainnya tidak diisi
-      if (tahunSetoran === 'LAINNYA' && !tahunLainnya) {
-        return res
-          .status(400)
-          .json({ message: 'Alasan lainnya wajib diisi jika memilih LAINNYA.' })
-      }
-
-      // Mengirim data ke service untuk diproses
       const dataKoreksi =
         await koreksiPenerimaanService.createKoreksiPenerimaan(
           {
-            kodeSatker,
             noTelpon,
             tahunSetoran,
-            tahunLainnya,
-            unggahDokumen: fileUrl
+            tahunLainnya
           },
-          req.userId
+          userId,
+          file
         )
 
-      // Response jika data berhasil diproses
       res.status(201).json({
         dataKoreksi,
         message: 'Koreksi Penerimaan Berhasil Dibuat'
       })
     } catch (error) {
-      // Mengirimkan pesan error yang lebih informatif
       console.error('Error pada route /create:', error)
       res.status(500).json({
         message: 'Terjadi kesalahan saat memproses permintaan.',
@@ -98,14 +55,9 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const koreksiPenerimaanId = parseInt(req.params.id)
-    if (isNaN(koreksiPenerimaanId)) {
-      return res.status(400).json({ message: 'ID tidak valid' })
-    }
+    const { id } = req.params
     const koreksiPenerimaan =
-      await koreksiPenerimaanService.getKoreksiPenerimaanById(
-        koreksiPenerimaanId
-      )
+      await koreksiPenerimaanService.getKoreksiPenerimaanById(id)
     res.status(200).send(koreksiPenerimaan)
   } catch (error) {
     console.log('gagal mengambil data', error)
@@ -121,55 +73,12 @@ router.patch(
     try {
       const koreksiPenerimaanId = req.params.id
       const dataKoreksi = req.body
-      const koreksiPenerimaan =
-        await koreksiPenerimaanService.getKoreksiPenerimaanById(
-          koreksiPenerimaanId
-        )
-
-      const isRejected = Array.isArray(koreksiPenerimaan?.monitoring)
-        ? koreksiPenerimaan.monitoring.some(
-            monitoring => monitoring.status === 'DITOLAK'
-          )
-        : false
-
-      let unggahDokumen = null
-
-      if (req.file) {
-        // Fungsi upload ke Cloudinary dari buffer
-        const uploadToCloudinary = buffer =>
-          new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { resource_type: 'auto' },
-              (error, result) => {
-                if (error) reject(error)
-                else resolve(result)
-              }
-            )
-            stream.end(buffer)
-          })
-
-        // Upload dokumen baru ke Cloudinary
-        const cloudinaryRes = await uploadToCloudinary(req.file.buffer)
-        unggahDokumen = cloudinaryRes.secure_url
-      }
-
-      if (!isRejected && !req.file) {
-        return res
-          .status(400)
-          .json({ message: 'Dokumen baru harus diunggah setelah penolakan.' })
-      }
-
-      if (unggahDokumen) {
-        dataKoreksi.unggahDokumen = unggahDokumen
-      }
-
+      const file = req.file
       const updateKoreksiPenerimaan =
         await koreksiPenerimaanService.editKoreksiPenerimaanById(
           koreksiPenerimaanId,
-          {
-            ...dataKoreksi,
-            unggahDokumen
-          }
+          dataKoreksi,
+          file
         )
       res.status(200).json({
         updateKoreksiPenerimaan,

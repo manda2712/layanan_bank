@@ -1,36 +1,49 @@
 const prisma = require('../db')
 
-async function insertPembukaanRekening (dataRekening, userId) {
+async function insertPembukaanRekening (dataRekening, userId, satkerId) {
   if (!userId) throw new Error('User ID tidak ditemukan!')
 
-  const newPembukaanRekening = await prisma.pembukaanRekening.create({
+  return await prisma.pembukaanRekening.create({
     data: {
-      kodeSatker: dataRekening.kodeSatker,
       noTelpon: dataRekening.noTelpon,
       jenisRekening: dataRekening.jenisRekening,
       unggahDokumen: dataRekening.unggahDokumen,
-      userId: userId, // Ambil dari token JWT,
+      extractedText: dataRekening.extractedText,
+      validationResult: dataRekening.validationResult,
+      user: {
+        connect: { id: userId }
+      },
+
+      satker: {
+        connect: { id: satkerId }
+      },
       monitoring: {
         create: {
-          status: 'DIPROSES', // Sesuaikan dengan enum StatusMonitoring
-          userId: userId
+          status: 'DIPROSES',
+          hasilKmp: dataRekening.hasilAnalisis,
+          catatan: null,
+          user: { connect: { id: userId } },
+          satker: { connect: { id: satkerId } }
         }
       }
     },
-    include: { monitoring: true } // Ambil data user untuk validasi
+    include: { monitoring: true }
   })
-
-  return newPembukaanRekening
 }
 
 async function findPembukaanRekening () {
   const pembukaanRekening = await prisma.pembukaanRekening.findMany({
     select: {
       id: true,
-      kodeSatker: true,
       noTelpon: true,
       jenisRekening: true,
-      unggahDokumen: true
+      unggahDokumen: true,
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
+        }
+      }
     }
   })
   return pembukaanRekening
@@ -42,7 +55,14 @@ async function findPembukaanRekeningById (id) {
     include: {
       monitoring: {
         select: {
-          status: true
+          status: true,
+          catatan: true
+        }
+      },
+      satker: {
+        select: {
+          kodeSatker: true,
+          namaInstansi: true
         }
       }
     }
@@ -58,22 +78,28 @@ async function editPembukaanRekening (id, dataRekening) {
     include: { monitoring: true }
   })
 
-  if (!pembukaanRekening) {
-    throw new Error('Pembukaan Rekening ditemukan')
-  }
-
-  if (!dataRekening.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
-  }
+  if (!pembukaanRekening) throw new Error('Pembukaan Rekening ditemukan')
 
   const updatePembukaanRekening = await prisma.pembukaanRekening.update({
     where: { id: parseInt(id) },
-    data: { unggahDokumen: dataRekening.unggahDokumen }
+    data: {
+      ...(dataRekening.noTelpon && { noTelpon: dataRekening.noTelpon }),
+      ...(dataRekening.jenisRekening && {
+        jenisRekening: dataRekening.jenisRekening
+      }),
+      ...(dataRekening.unggahDokumen && {
+        unggahDokumen: dataRekening.unggahDokumen
+      }),
+      ...(dataRekening.extractedText && {
+        extractedText: dataRekening.extractedText
+      })
+    }
   })
 
   if (pembukaanRekening.monitoring && pembukaanRekening.monitoring.length > 0) {
-    const lastMonitoring =
-      pembukaanRekening.monitoring[pembukaanRekening.monitoring.length - 1]
+    const lastMonitoring = pembukaanRekening.monitoring.sort(
+      (a, b) => b.id - a.id
+    )[0]
     await prisma.monitoringPembukaanRekening.update({
       where: { id: lastMonitoring.id },
       data: {
