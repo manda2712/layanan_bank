@@ -1,9 +1,6 @@
-const { penerbitanBukti, pembukaanRekening } = require('../db')
-const {
-  findMonitoringForAdmin
-} = require('../monitoringReturSp2d/monitoringReturSp2d.repository')
 const {
   findMonitoringPembukaanRekening,
+  findMonitoringPembukaanRekeningForAdmin,
   findMonitoringPembukaanRekeningById,
   updateMonitoringPembukaanRekening,
   deleteMonitoringPembukaanRekening
@@ -34,7 +31,7 @@ async function getAllMonitoringPembukaanRekening (user) {
 }
 
 async function getAllPembukaanRekeningForAdmin () {
-  const data = await findMonitoringForAdmin()
+  const data = await findMonitoringPembukaanRekeningForAdmin()
 
   return data.map(item => {
     let checklistKmp = null

@@ -31,7 +31,7 @@ async function getAllMonitoringPenerbitanNota (user) {
     }))
 }
 
-async function getAllMonitoringPenerbitanNota () {
+async function getMonitoringPenerbitanNotaByAdmin () {
   const data = await findMonitoringPenerbitanNotaAdmin()
 
   return data.map(item => {
@@ -81,6 +81,7 @@ async function deleteMonitoringPenerbitanNotaById (id) {
 module.exports = {
   getAllMonitoringPenerbitanNota,
   getMonitoringPenerbitanNotaById,
+  getMonitoringPenerbitanNotaByAdmin,
   editMonitoringPenerbitanNotaById,
   deleteMonitoringPenerbitanNotaById
 }

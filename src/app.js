@@ -101,4 +101,6 @@ app.use('/api/monitoringPfk', monitoringPengembalianPfkController)
 const notificationController = require('./notifikasi/notifikasi.controller')
 app.use('/api/notifikasi', notificationController)
 
+const satkerController = require('./satker/satker.controller')
+app.use('/api/satker', satkerController)
 // export default app

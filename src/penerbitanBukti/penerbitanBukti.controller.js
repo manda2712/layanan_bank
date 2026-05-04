@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
 router.patch(
   '/:id',
   authorizeJWT,
-  upload.single('unggah_Dokumen'),
+  upload.single('unggah_dokumen'),
   async (req, res) => {
     try {
       const penerbitanBuktiId = req.params.id

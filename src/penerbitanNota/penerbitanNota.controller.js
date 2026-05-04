@@ -65,9 +65,12 @@ router.patch(
   async (req, res) => {
     try {
       const penerbitanNotaId = req.params.id
+      const userId = req.user.id
       const dataNota = req.body
+      const file = req.file
       const updatedNota = await penerbitanNotaService.editPenerbitanNotaById(
         penerbitanNotaId,
+        userId,
         dataNota,
         file
       )
@@ -86,7 +89,11 @@ router.patch(
 router.delete('/:id', async (req, res) => {
   try {
     const penerbitanNotaId = req.params.id
-    await penerbitanNotaService.deletePenerbitanNotaById(penerbitanNotaId)
+    const userId = req.user.id
+    await penerbitanNotaService.deletePenerbitanNotaById(
+      penerbitanNotaId,
+      userId
+    )
     res
       .status(200)
       .json({ message: 'pengajuan Penerbitan Nota Berhasil Dihapus' })

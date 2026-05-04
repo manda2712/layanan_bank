@@ -104,6 +104,7 @@ async function deletedMonitoringLaporanRekening (id) {
 module.exports = {
   findMonitoringLaporanRekening,
   findMonitoringLaporanRekeningById,
+  findMonitoringLaporanRekeningForAdmin,
   updateMonitoringLaporanRekening,
   deletedMonitoringLaporanRekening
 }

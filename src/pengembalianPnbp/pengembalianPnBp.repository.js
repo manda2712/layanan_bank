@@ -1,6 +1,6 @@
 const prisma = require('../db')
 
-async function insertPengembalianPnbp (dataPnbp, userId) {
+async function insertPengembalianPnbp (dataPnbp, userId, satkerId) {
   const newPengembalianPnbp = await prisma.pengembalianPnbp.create({
     data: {
       pihakMengajukan: dataPnbp.pihakMengajukan,

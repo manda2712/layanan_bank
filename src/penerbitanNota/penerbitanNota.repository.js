@@ -15,7 +15,7 @@ async function InsertPenerbitanNota (dataNota, userId, satkerId) {
   return await prisma.penerbitanNota.create({
     data: {
       noTelpon: dataNota.noTelpon,
-      tahunSetoran: mappedTahun, // mapping dipakai di sini
+      tahunSetoran: mappedTahun,
       tahunLainnya: dataNota.tahunLainnya || null,
       unggahDokumen: dataNota.unggahDokumen,
       extractedText: dataNota.extractedText,
@@ -40,8 +40,9 @@ async function InsertPenerbitanNota (dataNota, userId, satkerId) {
   })
 }
 
-async function findPenerbitanNota () {
+async function findPenerbitanNota (userId) {
   const newPenerbitanNota = await prisma.penerbitanNota.findMany({
+    where: { userId: userId },
     select: {
       id: true,
       noTelpon: true,
@@ -59,9 +60,9 @@ async function findPenerbitanNota () {
   return newPenerbitanNota
 }
 
-async function findPenerbitanNotaById (id) {
+async function findPenerbitanNotaById (id, userId) {
   const penerbitanNota = await prisma.penerbitanNota.findFirst({
-    where: { id: Number(id) },
+    where: { id: Number(id), userId: userId },
     include: {
       monitoring: {
         select: {
@@ -80,10 +81,11 @@ async function findPenerbitanNotaById (id) {
   return penerbitanNota
 }
 
-async function editPenerbitanNota (id, dataNota) {
+async function editPenerbitanNota (id, userId, dataNota) {
   const penerbitanNota = await prisma.penerbitanNota.findUnique({
     where: {
-      id: parseInt(id)
+      id: parseInt(id),
+      userId: userId
     },
     include: {
       monitoring: true
@@ -119,10 +121,11 @@ async function editPenerbitanNota (id, dataNota) {
   return updatePenerbitanNota
 }
 
-async function deletePenerbitanNota (id) {
+async function deletePenerbitanNota (id, userId) {
   await prisma.penerbitanNota.delete({
     where: {
-      id: parseInt(id)
+      id: parseInt(id),
+      userId: userId
     }
   })
 }

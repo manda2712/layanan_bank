@@ -31,7 +31,6 @@ async function findMonitoringPengajuanVoidAdmin () {
       pengajuanVoidId: true,
       pengajuanVoid: {
         select: {
-          userId: true,
           noTelpon: true,
           alasanVoid: true,
           extractedText: true,
@@ -54,7 +53,6 @@ async function findMonitoringPengujuanVoidById (id) {
       catatan: true,
       pengajuanVoid: {
         select: {
-          id: true,
           noTelpon: true,
           alasanVoid: true,
           unggahDokumen: true,

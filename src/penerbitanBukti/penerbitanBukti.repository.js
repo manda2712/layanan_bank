@@ -7,7 +7,7 @@ async function InsertPenerbitanBukti (dataBukti, userId, satkerId) {
     data: {
       noTelpon: dataBukti.noTelpon,
       unggah_dokumen: dataBukti.unggah_dokumen,
-      extractedTexts: dataBukti.extractedText,
+      extractedText: dataBukti.extractedText,
       validationResult: dataBukti.validationResult,
       satkerId: parseInt(satkerId),
       userId: parseInt(userId),

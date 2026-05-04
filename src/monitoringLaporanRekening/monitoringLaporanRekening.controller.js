@@ -9,7 +9,7 @@ router.get('/', authorizeJWT, async (req, res) => {
     let monitoringList
     if (req.user.role === 'admin') {
       monitoringList =
-        await monitoringLaporanRekeningService.getAllMonitoringLaporanRekening()
+        await monitoringLaporanRekeningService.getMonitoringLaporanByAdmin()
     } else {
       monitoringList =
         await monitoringLaporanRekeningService.getAllMonitoringLaporanRekening(

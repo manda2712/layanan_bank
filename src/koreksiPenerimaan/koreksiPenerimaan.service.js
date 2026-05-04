@@ -84,12 +84,12 @@ async function createKoreksiPenerimaan (dataKoreksi, userId, file) {
   }
 }
 
-async function getAllKoreksiPenerimaan () {
-  const koreksiPenerimaan = findKoreksiPenerimaan()
+async function getAllKoreksiPenerimaan (userId) {
+  const koreksiPenerimaan = findKoreksiPenerimaan(userId)
   return koreksiPenerimaan
 }
 
-async function getKoreksiPenerimaanById (id) {
+async function getKoreksiPenerimaanById (id, userId) {
   const koreksiPenerimaan = findKoreksiPenerimaanById(id)
   if (!koreksiPenerimaan) {
     throw new Error('Tidak Dapat Menemukan Koreksi Penerimaan ')
@@ -97,8 +97,8 @@ async function getKoreksiPenerimaanById (id) {
   return koreksiPenerimaan
 }
 
-async function editKoreksiPenerimaanById (id, dataKoreksi, file) {
-  const existingData = await getKoreksiPenerimaanById(id)
+async function editKoreksiPenerimaanById (id, userId, dataKoreksi, file) {
+  const existingData = await getKoreksiPenerimaanById(id, userId)
   if (!existingData) {
     throw new Error(
       `Data Koreksi Penerimaan dengan ID ${id} memang tidak ada di database.`
@@ -135,7 +135,7 @@ async function editKoreksiPenerimaanById (id, dataKoreksi, file) {
           ? 'Sistem: Dokumen Terdeteksi Lengkap.'
           : `Sistem: Pola tidak ditemukan pada: [${missingPatterns.join(', ')}]`
     }
-    const updated = await editKoreksiPenerimaan(id, dataKoreksi)
+    const updated = await editKoreksiPenerimaan(id, userId, dataKoreksi)
     return updated
   } catch (error) {
     console.error('Error saat update Koreksi Penerimaan:', error)
@@ -143,8 +143,8 @@ async function editKoreksiPenerimaanById (id, dataKoreksi, file) {
   }
 }
 
-async function deleteKoreksiPenerimaanById (id) {
-  await getKoreksiPenerimaanById(id)
+async function deleteKoreksiPenerimaanById (id, userId) {
+  await getKoreksiPenerimaanById(id, userId)
   await deleteKoreksiPenerimaan(id)
 }
 module.exports = {

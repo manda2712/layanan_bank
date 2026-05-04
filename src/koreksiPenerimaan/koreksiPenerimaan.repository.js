@@ -37,14 +37,20 @@ async function InsertKoreksiPenerimaan (dataKoreksi, userId, satkerId) {
   })
 }
 
-async function findKoreksiPenerimaan () {
+async function findKoreksiPenerimaan (userId) {
   const koreksiPenerimaan = await prisma.koreksiPenerimaan.findMany({
+    where: { userId: userId },
     select: {
       id: true,
       noTelpon: true,
       tahunSetoran: true,
       tahunLainnya: true,
       unggahDokumen: true,
+      user: {
+        select: {
+          namaLengkap: true
+        }
+      },
       satker: {
         select: {
           kodeSatker: true,
@@ -56,12 +62,18 @@ async function findKoreksiPenerimaan () {
   return koreksiPenerimaan
 }
 
-async function findKoreksiPenerimaanById (id) {
+async function findKoreksiPenerimaanById (id, userId) {
   const koreksiPenerimaan = await prisma.koreksiPenerimaan.findFirst({
     where: {
-      id: Number(id)
+      id: Number(id),
+      userId: userId
     },
     include: {
+      user: {
+        select: {
+          namaLengkap: true
+        }
+      },
       monitoring: {
         select: {
           status: true,
@@ -79,24 +91,33 @@ async function findKoreksiPenerimaanById (id) {
   return koreksiPenerimaan
 }
 
-async function editKoreksiPenerimaan (id, dataKoreksi) {
+async function editKoreksiPenerimaan (id, userId, dataKoreksi) {
   const koreksiPenerimaan = await prisma.koreksiPenerimaan.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: parseInt(id), userId: userId },
     include: { monitoring: true }
   })
 
   if (!koreksiPenerimaan) throw new Error('Koreksi Penerimaan tidak ditemukan')
 
-  if (!koreksiPenerimaan.unggahDokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
+  // Logika Pemetaan Tahun (Sama seperti di fungsi Insert)
+  let mappedTahun
+  if (dataKoreksi.tahunSetoran) {
+    mappedTahun = enumTahunMap[dataKoreksi.tahunSetoran]
+
+    // Jika user mengirim 'T2025' langsung dari frontend, pastikan tidak error
+    if (!mappedTahun && dataKoreksi.tahunSetoran.startsWith('T')) {
+      mappedTahun = dataKoreksi.tahunSetoran
+    }
+
+    if (!mappedTahun) throw new Error('Tahun Setoran tidak valid!')
   }
+
   const updateKoreksiPenerimaan = await prisma.koreksiPenerimaan.update({
     where: { id: parseInt(id) },
     data: {
       ...(dataKoreksi.noTelpon && { noTelpon: dataKoreksi.noTelpon }),
-      ...(dataKoreksi.tahunSetoran && {
-        tahunSetoran: dataKoreksi.tahunSetoran
-      }),
+      // GUNAKAN mappedTahun DISINI
+      ...(mappedTahun && { tahunSetoran: mappedTahun }),
       ...(dataKoreksi.tahunLainnya !== undefined && {
         tahunLainnya: dataKoreksi.tahunLainnya
       }),
@@ -110,6 +131,7 @@ async function editKoreksiPenerimaan (id, dataKoreksi) {
     include: { satker: true }
   })
 
+  // ... (sisa kode monitoring tetap sama)
   if (koreksiPenerimaan.monitoring && koreksiPenerimaan.monitoring.length > 0) {
     const lastMonitoring = koreksiPenerimaan.monitoring.sort(
       (a, b) => b.id - a.id
@@ -124,10 +146,11 @@ async function editKoreksiPenerimaan (id, dataKoreksi) {
   return updateKoreksiPenerimaan
 }
 
-async function deleteKoreksiPenerimaan (id) {
+async function deleteKoreksiPenerimaan (id, userId) {
   await prisma.koreksiPenerimaan.delete({
     where: {
-      id: parseInt(id)
+      id: parseInt(id),
+      userId: userId
     }
   })
 }

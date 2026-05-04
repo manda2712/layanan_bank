@@ -91,7 +91,7 @@ model penerbitanBukti {
   id             Int                         @id @default(autoincrement())
   noTelpon       String
   unggah_dokumen String
-  extractedTexts String?
+  extractedText  String?
   monitoring     monitoringPenerbitanBukti[]
   user           user                        @relation(fields: [userId], references: [id])
   userId         Int
@@ -157,6 +157,7 @@ model pengembalianPnbp {
   pihakMengajukan PihakPengajuan
   noTelpon        String
   unggahDokumen   String
+  extractedText   String?
   monitoring      monitoringPengembalianPnbp[]
   user            user                         @relation(fields: [userId], references: [id])
   userId          Int
@@ -169,6 +170,7 @@ model monitoringPengembalianPnbp {
   pengembalianPnbpId Int
   status             StatusMonitoring
   catatan            String?
+  hasilKmp           String?
   pengembalianPnbp   pengembalianPnbp @relation(fields: [pengembalianPnbpId], references: [id], onDelete: Cascade)
   user               user             @relation(fields: [userId], references: [id])
   userId             Int

@@ -50,6 +50,7 @@ async function getPengajuanVoidByAdmin () {
       status: formatStatus(item.status),
       statusOriginal: item.status,
       catatan: item.catatan,
+      checklistKmp: checklistKmp,
       pengajuanVoid: {
         ...item.pengajuanVoid,
         extractedText: item.pengajuanVoid.extractedText

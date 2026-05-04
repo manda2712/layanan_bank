@@ -1,6 +1,7 @@
-const { laporanRekening, koreksiPenerimaan } = require('../db')
+const { laporanRekening } = require('../db')
 const {
   findMonitoringLaporanRekening,
+  findMonitoringLaporanRekeningForAdmin,
   findMonitoringLaporanRekeningById,
   deletedMonitoringLaporanRekening,
   updateMonitoringLaporanRekening
@@ -30,6 +31,30 @@ async function getAllMonitoringLaporanRekening (user) {
     }))
 }
 
+async function getMonitoringLaporanByAdmin () {
+  const data = await findMonitoringLaporanRekeningForAdmin()
+
+  return data.map(item => {
+    let checklistKmp = null
+    try {
+      checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+    } catch (error) {
+      console.error('Gagal parse JSON hasilKmp:', error)
+    }
+    return {
+      id: item.id,
+      laporanRekeningId: item.laporanRekeningId,
+      status: formatStatus(item.status),
+      statusOriginal: item.status,
+      catatan: item.catatan,
+      laporanRekening: {
+        ...item.laporanRekening,
+        extractedText: item.laporanRekening.extractedText
+      }
+    }
+  })
+}
+
 async function getMonitoringLaporanRekeningById (id) {
   const monitoring = await findMonitoringLaporanRekeningById(id)
   if (!monitoring) {
@@ -55,6 +80,7 @@ async function deletedMonitoringLaporanRekeningById (id) {
 module.exports = {
   getAllMonitoringLaporanRekening,
   getMonitoringLaporanRekeningById,
+  getMonitoringLaporanByAdmin,
   editMonitoringLpaoranRekeningById,
   deletedMonitoringLaporanRekeningById
 }

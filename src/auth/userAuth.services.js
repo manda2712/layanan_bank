@@ -10,16 +10,23 @@ function generateToken (user) {
   )
 }
 
-async function register (namaLengkap, email, noTelepon, satkerId, password) {
+async function register (
+  namaLengkap,
+  email,
+  noTelepon,
+  satkerId,
+  password,
+  role
+) {
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
     const user = {
       namaLengkap,
       email,
       noTelepon,
-      satkerId,
+      satkerId: parseInt(satkerId),
       password: hashedPassword,
-      role: 'user'
+      role
     }
     const newUser = await userAuthRepository.createUser(user)
     return newUser
@@ -28,10 +35,14 @@ async function register (namaLengkap, email, noTelepon, satkerId, password) {
   }
 }
 
-async function login (email, password) {
+async function login (email, satkerId, password) {
   const user = await userAuthRepository.findUserAuth(email)
   if (!user) {
     throw new Error('Username Tidak Cocok')
+  }
+
+  if (user.satkerId !== parseInt(satkerId)) {
+    throw new Error('Satker yang dipilih tidak sesuai dengan akun Anda')
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password)

@@ -9,7 +9,7 @@ router.get('/', authorizeJWT, async (req, res) => {
     let monitoringList
     if (req.user.role === 'admin') {
       monitoringList =
-        await monitoringPengajuanVoidService.getAllMonitoringPengajuanVoid()
+        await monitoringPengajuanVoidService.getPengajuanVoidByAdmin()
     } else {
       monitoringList =
         await monitoringPengajuanVoidService.getAllMonitoringPengajuanVoid(

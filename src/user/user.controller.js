@@ -39,14 +39,21 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id', async (req, res) => {
   try {
-    const userId = parseInt(req.params.id)
+    const userId = parseInt(req.params.id) // Variabel yang didefinisikan
     const user = req.body
+
+    // PERBAIKAN: Hapus 'parsedId' dari argumen fungsi
+    // Gunakan hanya 'userId' dan 'user'
     const updateUser = await userService.editUserById(userId, user)
 
-    delete updateUser.password
-    res.status(200).send({ data: updateUser, message: 'User Upadate!' })
+    if (updateUser && updateUser.password) {
+      delete updateUser.password
+    }
+
+    res.status(200).send({ data: updateUser, message: 'User Update!' })
   } catch (error) {
-    res.status(400).send(error.message)
+    // Sebaiknya kirim objek agar frontend bisa membaca .message
+    res.status(400).send({ message: error.message })
   }
 })
 

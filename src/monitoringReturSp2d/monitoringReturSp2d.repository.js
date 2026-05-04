@@ -18,8 +18,7 @@ async function findMonitoringReturSp2d () {
           satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
-    },
-    orderBy: { id: 'desc' }
+    }
   })
 }
 
@@ -43,8 +42,7 @@ async function findMonitoringForAdmin () {
           satker: { select: { kodeSatker: true, namaInstansi: true } } // Perbaikan relasi satker
         }
       }
-    },
-    orderBy: { createdAt: 'desc' }
+    }
   })
 }
 
@@ -70,8 +68,7 @@ async function findMonitoringReturSp2dById (id) {
           }
         }
       }
-    },
-    orderBy: { createdAt: 'desc' }
+    }
   })
 }
 

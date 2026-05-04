@@ -22,6 +22,7 @@ async function findUser () {
       email: true,
       noTelepon: true,
       role: true,
+      satkerId: true,
       satker: {
         select: {
           namaInstansi: true,
@@ -55,11 +56,12 @@ async function findAllAdminUsers () {
 
 async function editUser (id, user) {
   const updateUser = await prisma.user.update({
-    where: { id: parsedId },
+    where: { id: id },
     data: {
       namaLengkap: user.namaLengkap,
       email: user.email,
       noTelepon: user.noTelepon,
+      satkerId: user.satkerId,
       password: user.password,
       role: user.role
     }

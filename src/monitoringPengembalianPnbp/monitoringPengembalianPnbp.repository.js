@@ -1,7 +1,7 @@
 const prisma = require('../db')
 
 async function findMonitoringPengembalianPnbp () {
-  const monitoring = await prisma.monitoringPengembalianPnbp.findMany({
+  return await prisma.monitoringPengembalianPnbp.findMany({
     select: {
       id: true,
       status: true,
@@ -9,20 +9,39 @@ async function findMonitoringPengembalianPnbp () {
       pengembalianPnbpId: true,
       pengembalianPnbp: {
         select: {
+          userId: true,
           pihakMengajukan: true,
-          kodeSatker: true,
           noTelpon: true,
           unggahDokumen: true,
-          user: {
-            select: {
-              namaLengkap: true
-            }
-          }
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
         }
       }
     }
   })
-  return monitoring
+}
+
+async function findMonitoringPengembalianPnbpByAdmin () {
+  return await prisma.monitoringPengembalianPnbp.findMany({
+    select: {
+      id: true,
+      status: true,
+      catatan: true,
+      hasilKmp: true,
+      pengembalianPnbpId: true,
+      pengembalianPnbp: {
+        select: {
+          userId: true,
+          pihakMengajukan: true,
+          noTelpon: true,
+          extractedText: true,
+          unggahDokumen: true,
+          user: { select: { namaLengkap: true } },
+          satker: { select: { kodeSatker: true, namaInstansi: true } }
+        }
+      }
+    }
+  })
 }
 
 async function findMonitoringPengembalianPnbpById (id) {

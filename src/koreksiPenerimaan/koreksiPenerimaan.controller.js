@@ -73,10 +73,12 @@ router.patch(
     try {
       const koreksiPenerimaanId = req.params.id
       const dataKoreksi = req.body
+      const userId = req.user.id
       const file = req.file
       const updateKoreksiPenerimaan =
         await koreksiPenerimaanService.editKoreksiPenerimaanById(
           koreksiPenerimaanId,
+          userId,
           dataKoreksi,
           file
         )
@@ -94,8 +96,10 @@ router.patch(
 router.delete('/:id', async (req, res) => {
   try {
     const koreksiPenerimaanId = req.params.id
+    const userId = req.user.id
     await koreksiPenerimaanService.deleteKoreksiPenerimaanById(
-      koreksiPenerimaanId
+      koreksiPenerimaanId,
+      userId
     )
     res.status(200).json({ message: 'Koreksi Penerimaan Berhasil Dihapus' })
   } catch (error) {

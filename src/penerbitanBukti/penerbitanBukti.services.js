@@ -100,38 +100,24 @@ async function getPenerbitanBuktiById (id) {
   return penerbitanBukti
 }
 
-async function editPenerbitanBuktiById (id, dataBukti) {
+async function editPenerbitanBuktiById (id, dataBukti, file) {
   const existPenerbitanBukti = await getPenerbitanBuktiById(id)
-
-  const isRejected = existPenerbitanBukti.monitoring?.some(
-    m => m.status === 'DITOLAK'
-  )
-  if (isRejected && !dataBukti.unggah_dokumen) {
-    throw new Error('Dokumen baru harus diunggah setelah penolakan')
-  }
 
   try {
     if (file) {
       const filename = `${Date.now()}-${file.originalname}`
       const filePath = path.join(uploadsPath, filename)
       fs.writeFileSync(filePath, file.buffer)
+
       dataBukti.unggah_dokumen = filename
+
       const extractedText = await ocrService.extractTextFromPDF(filePath)
       dataBukti.extractedText = extractedText
     }
     const updateBukti = await editPenerbitanBukti(id, dataBukti)
     const adminUsers = await getAllAdminUsers()
-    const notifMessage = `Kode Satker ${updateBukti.kodeSatker} telah mengupdate dokumen Penerbitan Bukti Penerimaan Negara.`
 
-    for (const admin of adminUsers) {
-      await createNotification({
-        userId: admin.id,
-        message: notifMessage,
-        monitoringId: updateBukti.monitoring?.id || null, // pastikan ini sesuai schema
-        monitoringType: 'penerbitanBukti' // isi sesuai kebutuhan
-      })
-    }
-    return updateBukti
+    return await editPenerbitanBukti(id, dataBukti)
   } catch (error) {
     console.error('Error saat update retur:', error)
     throw error
