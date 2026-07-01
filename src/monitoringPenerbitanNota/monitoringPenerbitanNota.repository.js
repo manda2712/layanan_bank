@@ -6,6 +6,7 @@ async function findMonitoringPenerbitanNota () {
       id: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       penerbitanNotaId: true,
       penerbitanNota: {
         select: {
@@ -30,6 +31,7 @@ async function findMonitoringPenerbitanNotaAdmin () {
       penerbitanNotaId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       hasilKmp: true,
       penerbitanNota: {
         select: {
@@ -56,6 +58,7 @@ async function findMonitoringPenerbitanNotaById (id) {
       penerbitanNotaId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       penerbitanNota: {
         select: {
           noTelpon: true,
@@ -86,6 +89,9 @@ async function updatedMonitoringPenerbitanNota (id, dataMonitoring) {
       ...(dataMonitoring.status && { status: dataMonitoring.status }),
       ...(dataMonitoring.hasOwnProperty('catatan') && {
         catatan: dataMonitoring.catatan
+      }),
+      ...(dataMonitoring.dokumenAdmin && {
+        dokumenAdmin: dataMonitoring.dokumenAdmin
       })
     },
     include: {

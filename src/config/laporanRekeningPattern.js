@@ -11,9 +11,15 @@ module.exports = {
       'Account Number',
       'Nomor Rekening'
     ],
-    tandaTangan: ['Kuasa Pengguna Anggaran', 'PP-SPM', 'PPSPM', 'NIP']
+    tandaTangan: [
+      'Kuasa Pengguna Anggaran',
+      'PP-SPM',
+      'PPSPM',
+      'NIP',
+      'Plt Kuasa Pengguna Anggaran'
+    ]
   },
-  laporanPentupan: {
+  laporanPenutupan: {
     suratLaporanPenutupan: [
       'Laporan Penutupan Rekening',
       'Rekening Tutup',

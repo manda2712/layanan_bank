@@ -7,6 +7,7 @@ async function findMonitoringPembukaanRekening () {
       pembukaanRekeningId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       pembukaanRekening: {
         select: {
           userId: true,
@@ -29,6 +30,7 @@ async function findMonitoringPembukaanRekeningForAdmin () {
       pembukaanRekeningId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       hasilKmp: true,
       pembukaanRekening: {
         select: {
@@ -53,6 +55,7 @@ async function findMonitoringPembukaanRekeningById (id) {
       pembukaanRekeningId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       pembukaanRekening: {
         select: {
           noTelpon: true,
@@ -79,6 +82,9 @@ async function updateMonitoringPembukaanRekening (id, dataMonitoring) {
       ...(dataMonitoring.status && { status: dataMonitoring.status }),
       ...(dataMonitoring.hasOwnProperty('catatan') && {
         catatan: dataMonitoring.catatan
+      }),
+      ...(dataMonitoring.dokumenAdmin && {
+        dokumenAdmin: dataMonitoring.dokumenAdmin
       })
     },
     include: {

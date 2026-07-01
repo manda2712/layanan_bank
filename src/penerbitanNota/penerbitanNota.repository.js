@@ -31,6 +31,7 @@ async function InsertPenerbitanNota (dataNota, userId, satkerId) {
           status: 'DIPROSES',
           hasilKmp: dataNota.hasilAnalisis,
           catatan: null,
+          dokumenAdmin: dataNota.dokumenAdmin,
           user: { connect: { id: userId } },
           satker: { connect: { id: satkerId } }
         }
@@ -53,6 +54,11 @@ async function findPenerbitanNota (userId) {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        },
+        monitoring: {
+          select: {
+            dokumenAdmin: true
+          }
         }
       }
     }
@@ -67,13 +73,19 @@ async function findPenerbitanNotaById (id, userId) {
       monitoring: {
         select: {
           status: true,
-          catatan: true
+          catatan: true,
+          dokumenAdmin: true
         }
       },
       satker: {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        }
+      },
+      monitoring: {
+        select: {
+          dokumenAdmin: true
         }
       }
     }

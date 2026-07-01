@@ -27,6 +27,7 @@ async function getAllMonitoringPenerbitanNota (user) {
       penerbitanNotaId: item.penerbitanNotaId,
       status: formatStatus(item.status),
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       penerbitanNota: item.penerbitanNota
     }))
 }
@@ -36,8 +37,12 @@ async function getMonitoringPenerbitanNotaByAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', e)
     }
@@ -47,7 +52,9 @@ async function getMonitoringPenerbitanNotaByAdmin () {
       status: formatStatus(item.status),
       statusOriginal: item.status,
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       penerbitanNota: {
         ...item.penerbitanNota,
         extractedText: item.penerbitanNota.extractedText
@@ -61,7 +68,10 @@ async function getMonitoringPenerbitanNotaById (id) {
   if (!monitoring) {
     throw new Error('Monitoring Penerbitan Nota Berhasil Dibuat')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringPenerbitanNotaById (id, dataMonitoring) {

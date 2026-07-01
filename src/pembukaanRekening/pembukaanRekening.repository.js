@@ -22,6 +22,7 @@ async function insertPembukaanRekening (dataRekening, userId, satkerId) {
           status: 'DIPROSES',
           hasilKmp: dataRekening.hasilAnalisis,
           catatan: null,
+          dokumenAdmin: dataRekening.dokumenAdmin,
           user: { connect: { id: userId } },
           satker: { connect: { id: satkerId } }
         }
@@ -42,6 +43,11 @@ async function findPembukaanRekening () {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        },
+        monitoring: {
+          select: {
+            dokumenAdmin: true
+          }
         }
       }
     }
@@ -63,6 +69,11 @@ async function findPembukaanRekeningById (id) {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        },
+        monitoring: {
+          select: {
+            dokumenAdmin: true
+          }
         }
       }
     }

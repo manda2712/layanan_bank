@@ -1,7 +1,8 @@
 module.exports = {
   konfirmasiPenerimaanNegara: [
     'Permohonan Konfirmasi Setoran Penerimaan Negara',
-    'Nota Konfirmasi Penerimaan Negara'
+    'Nota Konfirmasi Penerimaan Negara',
+    ' Permohonan Konfirmasi Penerimaan Negara'
   ],
   daftarRekaptulasi: [
     'NTPN',

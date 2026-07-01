@@ -7,6 +7,7 @@ async function findMonitoringKoreksiPenerimaan () {
       koreksiPenerimaanId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       koreksiPenerimaan: {
         select: {
           userId: true,
@@ -32,6 +33,7 @@ async function findMonitoringKoreksiPenerimaanAdmin () {
       koreksiPenerimaanId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       hasilKmp: true,
       koreksiPenerimaan: {
         select: {
@@ -58,6 +60,7 @@ async function findMonitoringKoreksiPenerimaanById (id) {
       koreksiPenerimaanId: true,
       status: true,
       catatan: true,
+      dokumenAdmin: true,
       hasilKmp: true,
       koreksiPenerimaan: {
         select: {
@@ -90,6 +93,9 @@ async function updateMonitoringKoreksiPenerimaan (id, dataMonitoring) {
       ...(dataMonitoring.status && { status: dataMonitoring.status }),
       ...(dataMonitoring.hasOwnProperty('catatan') && {
         catatan: dataMonitoring.catatan
+      }),
+      ...(dataMonitoring.dokumenAdmin && {
+        dokumenAdmin: dataMonitoring.dokumenAdmin
       })
     },
     include: {

@@ -36,8 +36,12 @@ async function getMonitoringLaporanByAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', error)
     }
@@ -47,6 +51,8 @@ async function getMonitoringLaporanByAdmin () {
       status: formatStatus(item.status),
       statusOriginal: item.status,
       catatan: item.catatan,
+      checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       laporanRekening: {
         ...item.laporanRekening,
         extractedText: item.laporanRekening.extractedText
@@ -60,7 +66,10 @@ async function getMonitoringLaporanRekeningById (id) {
   if (!monitoring) {
     throw new Error('Monitoring Laporan Rekenig Tidak Ditemukan')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringLpaoranRekeningById (id, dataMonitoring) {

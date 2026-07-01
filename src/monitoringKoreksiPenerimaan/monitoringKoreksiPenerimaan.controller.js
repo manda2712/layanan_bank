@@ -1,8 +1,28 @@
 const express = require('express')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
 const router = express.Router()
 const monitoringKoreksiPenerimaanService = require('./monitoringKoreksiPenerimaan.service')
 const adminAuthorize = require('../middleware/adminAuthorizeJWT')
 const authorizeJWT = require('../middleware/authorizeJWT')
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'uploads/'
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir)
+    }
+    cb(null, dir)
+  },
+  filename: (req, file, cb) => {
+    // Menghasilkan nama unik: 1714800000-123456789.pdf
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+    cb(null, uniqueSuffix + path.extname(file.originalname))
+  }
+})
+
+const upload = multer({ storage })
 
 router.get('/', authorizeJWT, async (req, res) => {
   try {
@@ -36,23 +56,31 @@ router.get('/:id', authorizeJWT, async (req, res) => {
   }
 })
 
-router.patch('/:id', adminAuthorize, async (req, res) => {
-  try {
-    const monitoringId = req.params.id
-    const monitoringData = req.body
-    const updatedMonitoring =
-      await monitoringKoreksiPenerimaanService.editMonitoringKoreksiPenerimaan(
-        monitoringId,
-        monitoringData
-      )
-    res.status(200).json({
-      updatedMonitoring,
-      message: 'Monitoring koreksi Penerimaan Berhasil Diubah'
-    })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+router.patch(
+  '/:id',
+  upload.single('dokumenAdmin'),
+  adminAuthorize,
+  async (req, res) => {
+    try {
+      const monitoringId = req.params.id
+      const monitoringData = {
+        ...req.body,
+        ...(req.file && { dokumenAdmin: req.file.filename })
+      }
+      const updatedMonitoring =
+        await monitoringKoreksiPenerimaanService.editMonitoringKoreksiPenerimaan(
+          monitoringId,
+          monitoringData
+        )
+      res.status(200).json({
+        updatedMonitoring,
+        message: 'Monitoring koreksi Penerimaan Berhasil Diubah'
+      })
+    } catch (error) {
+      res.status(400).json({ error: error.message })
+    }
   }
-})
+)
 
 router.delete('/:id', adminAuthorize, async (req, res) => {
   try {

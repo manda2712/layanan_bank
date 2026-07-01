@@ -39,8 +39,12 @@ async function getPengajuanVoidByAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', error)
     }
@@ -51,6 +55,7 @@ async function getPengajuanVoidByAdmin () {
       statusOriginal: item.status,
       catatan: item.catatan,
       checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       pengajuanVoid: {
         ...item.pengajuanVoid,
         extractedText: item.pengajuanVoid.extractedText
@@ -63,7 +68,10 @@ async function getMonitoringPengajuanVoidById (id) {
   if (!monitoring) {
     throw new Error('Monitoring Pengajuan Void Tidak Ditemukan')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringPengajuanVoidById (id, dataMonitoring) {

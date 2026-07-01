@@ -27,6 +27,7 @@ async function getAllMonitoringKoreksiPenerimaan (user) {
       koreksiPenerimaanId: item.koreksiPenerimaanId,
       status: formatStatus(item.status),
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       koreksiPenerimaan: item.koreksiPenerimaan
     }))
 }
@@ -36,8 +37,13 @@ async function getMonitoringKoreksiForAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', error)
     }
@@ -47,7 +53,9 @@ async function getMonitoringKoreksiForAdmin () {
       status: formatStatus(item.status),
       statusOrginal: item.status,
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       koreksiPenerimaan: {
         ...item.koreksiPenerimaan,
         extractedText: item.koreksiPenerimaan.extractedText
@@ -61,7 +69,10 @@ async function getMonitoringKoreksiPenerimaanById (id) {
   if (!monitoring) {
     throw new Error('Monitoring Koreksi Penerimaan Tidak Ditemukan ')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringKoreksiPenerimaan (id, dataMonitoring) {

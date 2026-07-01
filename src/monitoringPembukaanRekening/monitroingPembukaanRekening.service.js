@@ -24,7 +24,8 @@ async function getAllMonitoringPembukaanRekening (user) {
       id: item.id,
       pembukaanRekeningId: item.pembukaanRekeningId,
       status: formatStatus(item.status),
-      catatan: item.catatan, // Ini adalah pesan manual dari Admin
+      catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       createdAt: item.createdAt,
       pembukaanRekening: item.pembukaanRekening
     }))
@@ -35,8 +36,12 @@ async function getAllPembukaanRekeningForAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', error)
     }
@@ -46,7 +51,9 @@ async function getAllPembukaanRekeningForAdmin () {
       status: formatStatus(item.status),
       statusOriginal: item.status,
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       pembukaanRekening: {
         ...item.pembukaanRekening,
         extractedText: item.pembukaanRekening.extractedText
@@ -60,7 +67,10 @@ async function getMonitoringPembukaanRekeningById (id) {
   if (!monitoring) {
     throw new Error('Monitoring tidak ditemukan')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringPembukaanRekeningById (id, dataMonitoring) {

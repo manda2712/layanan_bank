@@ -113,6 +113,7 @@ model monitoringPenerbitanBukti {
   satkerId          Int
   status            StatusMonitoring
   catatan           String?
+  dokumenAdmin      String?
   hasilKmp          String?
   penerbitanBukti   penerbitanBukti  @relation(fields: [penerbitanBuktiId], references: [id], onDelete: Cascade)
   user              user             @relation(fields: [userId], references: [id])
@@ -145,6 +146,7 @@ model monitoringPenerbitanNota {
   status           StatusMonitoring
   catatan          String?
   hasilKmp         String?
+  dokumenAdmin     String?
   penerbitanNota   penerbitanNota   @relation(fields: [penerbitanNotaId], references: [id], onDelete: Cascade)
   user             user             @relation(fields: [userId], references: [id])
   userId           Int
@@ -197,6 +199,7 @@ model monitoringKoreksiPenerimaan {
   koreksiPenerimaanId Int
   status              StatusMonitoring
   catatan             String?
+  dokumenAdmin        String?
   hasilKmp            String?
   koreksiPenerimaan   koreksiPenerimaan @relation(fields: [koreksiPenerimaanId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])
@@ -262,6 +265,7 @@ model monitoringPembukaanRekening {
   pembukaanRekeningId Int
   status              StatusMonitoring
   catatan             String?
+  dokumenAdmin        String?
   hasilKmp            String?
   pembukaanRekening   pembukaanRekening @relation(fields: [pembukaanRekeningId], references: [id], onDelete: Cascade)
   user                user              @relation(fields: [userId], references: [id])

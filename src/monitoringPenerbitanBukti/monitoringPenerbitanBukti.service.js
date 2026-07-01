@@ -26,6 +26,7 @@ async function getAllMonitoringPenerbitanBukti (userId) {
       penerbitanBuktiId: item.penerbitanBuktiId,
       status: formatStatus(item.status),
       catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       penerbitanBukti: item.penerbitanBukti
     }))
 }
@@ -35,8 +36,12 @@ async function getAllMonitoringAdmin () {
 
   return data.map(item => {
     let checklistKmp = null
+    let isSesuaiSyarat = false
     try {
       checklistKmp = item.hasilKmp ? JSON.parse(item.hasilKmp) : null
+      if (checklistKmp) {
+        isSesuaiSyarat = Object.values(checklistKmp).every(val => val === true)
+      }
     } catch (error) {
       console.error('Gagal parse JSON hasilKmp:', e)
     }
@@ -45,9 +50,11 @@ async function getAllMonitoringAdmin () {
       id: item.id,
       penerbitanBuktiId: item.penerbitanBuktiId,
       status: formatStatus(item.status),
-      statusOriginal: item.status, // Berguna untuk dropdown update status di FE
-      catatan: item.catatan, // Pesan yang dikirim admin ke user
+      statusOriginal: item.status,
+      catatan: item.catatan,
+      dokumenAdmin: item.dokumenAdmin,
       checklistKmp: checklistKmp,
+      isSesuaiSyarat: isSesuaiSyarat,
       penerbitanBukti: {
         ...item.penerbitanBukti,
         extractedText: item.penerbitanBukti.extractedText
@@ -61,7 +68,10 @@ async function getMonitoringPenerbitanBuktiById (id) {
   if (!monitoring) {
     throw new Error('Monitoring Penerbitan Bukti Tidak Ditemukan')
   }
-  return monitoring
+  return {
+    ...monitoring,
+    statusFormatted: formatStatus(monitoring.status)
+  }
 }
 
 async function editMonitoringPenerbitanBuktiById (id, dataMonitoring) {

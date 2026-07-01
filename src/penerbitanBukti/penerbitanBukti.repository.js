@@ -16,6 +16,7 @@ async function InsertPenerbitanBukti (dataBukti, userId, satkerId) {
           status: 'DIPROSES',
           hasilKmp: dataBukti.hasilAnalisis,
           catatan: null,
+          dokumenAdmin: dataBukti.dokumenAdmin,
           user: { connect: { id: userId } },
           satker: { connect: { id: satkerId } }
         }
@@ -25,8 +26,9 @@ async function InsertPenerbitanBukti (dataBukti, userId, satkerId) {
   })
 }
 
-async function findPenerbitan () {
+async function findPenerbitan (userId) {
   const penerbitanBukti = await prisma.penerbitanBukti.findMany({
+    where: { userId: userId },
     select: {
       id: true,
       noTelpon: true,
@@ -35,6 +37,11 @@ async function findPenerbitan () {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        },
+        monitoring: {
+          select: {
+            dokumenAdmin: true
+          }
         }
       }
     }
@@ -58,6 +65,11 @@ async function findPenerbitanBuktiById (id) {
         select: {
           kodeSatker: true,
           namaInstansi: true
+        }
+      },
+      monitoring: {
+        select: {
+          dokumenAdmin: true
         }
       }
     }
