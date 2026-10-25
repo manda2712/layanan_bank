@@ -16,8 +16,8 @@ router.post(
   upload.single('unggahDokumen'),
   async (req, res) => {
     try {
-      console.log('User Id dari Request:', req.userId)
-      if (!req.userId) {
+      console.log('User Id dari Request:', req.user?.id)
+      if (!req.user?.id) {
         return res.status(401).json({ message: 'User Tidak Terutentikasi' })
       }
 
@@ -51,7 +51,7 @@ router.post(
           jenisLaporan,
           unggahDokumen: fileUrl
         },
-        req.userId
+        req.user?.id
       )
       res
         .status(201)
